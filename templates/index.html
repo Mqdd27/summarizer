@@ -162,16 +162,22 @@ function stopLoading() {
 }
 
 document.body.addEventListener('htmx:beforeRequest', (e) => {
-    startLoading(e.target.id);
+    if (e.target && (e.target.id === 'url-form' || e.target.id === 'file-form')) {
+        startLoading(e.target.id);
+    }
 });
 
-document.body.addEventListener('htmx:afterRequest', () => {
-    stopLoading();
+document.body.addEventListener('htmx:afterRequest', (e) => {
+    if (e.target && (e.target.id === 'url-form' || e.target.id === 'file-form')) {
+        stopLoading();
+    }
 });
 
-document.body.addEventListener('htmx:responseError', () => {
-    stopLoading();
-    showToast('Failed to process request', 'error');
+document.body.addEventListener('htmx:responseError', (e) => {
+    if (e.target && (e.target.id === 'url-form' || e.target.id === 'file-form')) {
+        stopLoading();
+        showToast('Failed to process request', 'error');
+    }
 });
 
 fileInput.addEventListener('change', () => {

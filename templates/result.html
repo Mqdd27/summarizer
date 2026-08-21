@@ -118,7 +118,15 @@
 
         <!-- Chat Messages Container -->
         <div id="chat-messages" class="min-h-[60px] max-h-[400px] overflow-y-auto space-y-4 mb-4 pr-1">
-            <div class="text-xs text-dark-500 text-center py-2">Ask any question or clarification regarding this document.</div>
+            <div id="chat-placeholder" class="text-xs text-dark-500 text-center py-2">Ask any question or clarification regarding this document.</div>
+        </div>
+
+        <!-- Chat Typing / Loading Indicator -->
+        <div id="chat-loading-indicator" class="hidden mb-4">
+            <div class="flex items-center gap-2 text-xs text-indigo-400 bg-dark-800/80 border border-dark-700/60 rounded-xl px-3.5 py-2.5 max-w-fit animate-pulse">
+                <svg class="w-4 h-4 spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                <span>AI is thinking...</span>
+            </div>
         </div>
 
         <!-- Chat Input Form -->
@@ -130,7 +138,6 @@
                    class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" required autocomplete="off">
             <button type="submit" id="chat-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap">
                 <span id="chat-btn-text">Send</span>
-                <svg id="chat-spinner" class="w-4 h-4 spinner hidden" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
             </button>
         </form>
     </div>
@@ -148,18 +155,26 @@ function downloadFile(content, filename, type) {
 }
 
 function startChatLoading() {
+    const ph = document.getElementById('chat-placeholder');
+    if (ph) ph.remove();
+    
     document.getElementById('chat-btn').disabled = true;
     document.getElementById('chat-btn').classList.add('opacity-50', 'cursor-not-allowed');
-    document.getElementById('chat-spinner').classList.remove('hidden');
-    document.getElementById('chat-btn-text').textContent = 'Thinking...';
+    document.getElementById('chat-input').disabled = true;
+    document.getElementById('chat-loading-indicator').classList.remove('hidden');
+    
+    const c = document.getElementById('chat-messages');
+    c.scrollTop = c.scrollHeight;
 }
 
 function finishChatLoading() {
     document.getElementById('chat-input').value = '';
+    document.getElementById('chat-input').disabled = false;
     document.getElementById('chat-btn').disabled = false;
     document.getElementById('chat-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-    document.getElementById('chat-spinner').classList.add('hidden');
-    document.getElementById('chat-btn-text').textContent = 'Send';
+    document.getElementById('chat-loading-indicator').classList.add('hidden');
+    document.getElementById('chat-input').focus();
+    
     const c = document.getElementById('chat-messages');
     c.scrollTop = c.scrollHeight;
 }
