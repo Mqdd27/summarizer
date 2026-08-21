@@ -15,9 +15,10 @@ from services.cache import get_cached, set_cached, log_request
 logger = logging.getLogger("summarizer")
 logging.basicConfig(level=logging.INFO)
 
-SYSTEM_PROMPT = "You are an expert document summarizer. Respond directly with the Markdown summary without any preamble or internal thinking. Be concise, accurate, and follow the structure strictly."
+SYSTEM_PROMPT = "You are an expert document summarizer and assistant. Respond directly in clean Markdown format without internal thinking tags. Language rule: Match the language of the source document or the user's question. If the document/question is in Indonesian (Bahasa Indonesia), write your response in Indonesian. If in English, write in English. Never use Vietnamese or other unrelated languages."
 
 SUMMARY_PROMPT = """Analyze the following content and produce a structured summary in Markdown format.
+Match the language of the source content (Indonesian if content is Indonesian, English if English).
 
 Choose the most appropriate sections from:
 - # Executive Summary
@@ -32,6 +33,7 @@ Rules:
 - Only include relevant sections
 - Do NOT fabricate information
 - Prioritize factual accuracy
+- Language: Follow the document language (Indonesian or English)
 
 Content:
 """
@@ -46,7 +48,7 @@ Include:
 - ## Context & Significance
 - ## TL;DR
 
-Output Markdown directly without internal thinking tags.
+Output Markdown directly in English (or Indonesian if the text inside the image is Indonesian).
 """
 
 
@@ -299,7 +301,11 @@ Document Context:
 
 User Question: {question}
 
-Answer factually and concisely using only information from the document context above. If the document does not contain the answer, clearly state so. Respond in Markdown format.
+Instructions:
+- Answer factually and concisely using only information from the document context above.
+- If the document does not contain the answer, clearly state so.
+- Respond in Markdown format.
+- LANGUAGE RULE: Match the language of the User Question. If the user asks in Indonesian (Bahasa Indonesia), answer in natural Indonesian. If the user asks in English, answer in English. Do NOT answer in Vietnamese.
 """
     result = await call_ollama(prompt)
     return render_markdown(result["content"])
