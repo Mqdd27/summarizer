@@ -211,6 +211,22 @@ async def process_url(url: str) -> dict[str, Any]:
         return {"error": f"Failed to process URL: {e}"}
 
 
+async def ask_document(context: str, question: str) -> str:
+    prompt = f"""You are a helpful assistant answering questions about the following document summary.
+
+Document Context:
+\"\"\"
+{context}
+\"\"\"
+
+User Question: {question}
+
+Answer factually and concisely using only information from the document context above. If the document does not contain the answer, clearly state so. Respond in Markdown format.
+"""
+    result = await call_ollama(prompt)
+    return render_markdown(result["content"])
+
+
 async def process_file(file_path: str, input_type: str, original_name: str) -> dict[str, Any]:
     start = time.time()
     try:

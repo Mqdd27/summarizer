@@ -5,9 +5,10 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 
 import config
-from services.summarizer import process_url
+from services.summarizer import process_url, ask_document
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
@@ -70,3 +71,24 @@ async def summarize_url(request: Request, url: str = Form(...)):
     return templates.TemplateResponse(
         request=request, name="result.html", context=result
     )
+
+
+@router.post("/api/chat-document")
+async def chat_document(request: Request, question: str = Form(...), context: str = Form(...)):
+    if not question.strip():
+        return HTMLResponse("")
+
+    try:
+        answer_html = await ask_document(context, question.strip())
+        return templates.TemplateResponse(
+            request=request,
+            name="chat_message.html",
+            context={"question": question, "answer_html": answer_html},
+        )
+    except Exception as e:
+        error_html = f"<p class='text-red-400'>Error: {e}</p>"
+        return templates.TemplateResponse(
+            request=request,
+            name="chat_message.html",
+            context={"question": question, "answer_html": error_html},
+        )
