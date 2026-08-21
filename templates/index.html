@@ -14,22 +14,13 @@
                 <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                 <h2 class="text-lg font-semibold text-white">Summarize URL</h2>
             </div>
-            <form hx-post="/api/summarize-url" hx-target="#result-area" hx-indicator="#loading-url" hx-swap="innerHTML">
+            <form id="url-form" hx-post="/api/summarize-url" hx-target="#result-area" hx-swap="innerHTML">
                 <div class="flex gap-2">
-                    <input type="url" name="url" placeholder="https://example.com/article"
+                    <input type="url" name="url" id="url-input" placeholder="https://example.com/article"
                         class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
-                    <button type="submit" class="hide-on-request bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors whitespace-nowrap">
-                        Summarize
+                    <button type="submit" id="url-btn" class="action-btn bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span>Summarize</span>
                     </button>
-                </div>
-                <div id="loading-url" class="htmx-indicator mt-4">
-                    <div class="flex items-center gap-3 text-indigo-400">
-                        <svg class="w-5 h-5 spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                        <div>
-                            <p class="font-medium">Processing URL...</p>
-                            <p class="text-sm text-dark-500 animate-pulse-slow">Downloading, extracting, and summarizing content</p>
-                        </div>
-                    </div>
                 </div>
             </form>
         </div>
@@ -40,29 +31,61 @@
                 <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                 <h2 class="text-lg font-semibold text-white">Upload PDF or Image</h2>
             </div>
-            <form hx-post="/upload" hx-target="#result-area" hx-indicator="#loading-file" hx-encoding="multipart/form-data" hx-swap="innerHTML">
-                <div class="border-2 border-dashed border-dark-700 rounded-lg p-6 text-center hover:border-indigo-500/50 transition-colors" id="drop-zone">
+            <form id="file-form" hx-post="/upload" hx-target="#result-area" hx-encoding="multipart/form-data" hx-swap="innerHTML">
+                <div class="border-2 border-dashed border-dark-700 rounded-lg p-6 text-center hover:border-indigo-500/50 transition-colors cursor-pointer" id="drop-zone">
                     <input type="file" name="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" class="hidden" required>
                     <label for="file-input" class="cursor-pointer">
                         <svg class="w-10 h-10 text-dark-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <p class="text-dark-400 mb-1">Click to upload or drag & drop</p>
+                        <p class="text-dark-400 mb-1" id="drop-text">Click to upload or drag & drop</p>
                         <p class="text-dark-600 text-sm">PDF, JPG, PNG, WEBP (max 20MB)</p>
                     </label>
-                    <p id="file-name" class="mt-2 text-sm text-indigo-400 hidden"></p>
+                    <p id="file-name" class="mt-3 text-sm font-medium text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-lg py-1.5 px-3 inline-block hidden"></p>
                 </div>
-                <button type="submit" id="upload-btn" class="hide-on-request mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Summarize File
+                <button type="submit" id="upload-btn" class="action-btn mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <span>Summarize File</span>
                 </button>
-                <div id="loading-file" class="htmx-indicator mt-4">
-                    <div class="flex items-center gap-3 text-emerald-400">
-                        <svg class="w-5 h-5 spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                        <div>
-                            <p class="font-medium">Processing file...</p>
-                            <p class="text-sm text-dark-500 animate-pulse-slow">Extracting content and generating summary</p>
-                        </div>
-                    </div>
-                </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Loading Skeleton Indicator -->
+    <div id="loading-card" class="hidden mt-8 bg-dark-900 border border-indigo-900/50 rounded-xl p-6 shadow-2xl">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="relative flex items-center justify-center">
+                <svg class="w-6 h-6 text-indigo-500 spinner" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-white text-base" id="loading-title">AI is analyzing document...</h3>
+                <p class="text-xs text-indigo-400" id="loading-subtitle">Extracting content and feeding to Qwen model</p>
+            </div>
+            <div class="ml-auto text-xs text-dark-500 font-mono" id="loading-timer">0s</div>
+        </div>
+
+        <!-- Animated Steps -->
+        <div class="space-y-3 mb-6 border-y border-dark-800 py-4 text-xs font-medium">
+            <div class="flex items-center gap-2.5 text-indigo-300" id="step-1">
+                <div class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></div>
+                <span>Extracting document & preparing chunks...</span>
+            </div>
+            <div class="flex items-center gap-2.5 text-dark-500" id="step-2">
+                <div class="w-2 h-2 rounded-full bg-dark-700"></div>
+                <span>Running neural inference via Ollama...</span>
+            </div>
+            <div class="flex items-center gap-2.5 text-dark-500" id="step-3">
+                <div class="w-2 h-2 rounded-full bg-dark-700"></div>
+                <span>Formatting structured Markdown result...</span>
+            </div>
+        </div>
+
+        <!-- Skeletons -->
+        <div class="space-y-3 animate-pulse">
+            <div class="h-4 bg-dark-800 rounded w-3/4"></div>
+            <div class="h-3 bg-dark-800 rounded w-full"></div>
+            <div class="h-3 bg-dark-800 rounded w-5/6"></div>
+            <div class="h-3 bg-dark-800 rounded w-2/3"></div>
         </div>
     </div>
 
@@ -73,27 +96,112 @@
 const fileInput = document.getElementById('file-input');
 const fileName = document.getElementById('file-name');
 const uploadBtn = document.getElementById('upload-btn');
+const urlBtn = document.getElementById('url-btn');
+const urlInput = document.getElementById('url-input');
 const dropZone = document.getElementById('drop-zone');
+const loadingCard = document.getElementById('loading-card');
+const resultArea = document.getElementById('result-area');
+const loadingTimer = document.getElementById('loading-timer');
+
+let timerInterval = null;
+let secondsElapsed = 0;
+
+function setButtonsState(disabled) {
+    uploadBtn.disabled = disabled || !fileInput.files.length;
+    urlBtn.disabled = disabled;
+    urlInput.disabled = disabled;
+    fileInput.disabled = disabled;
+    if (disabled) {
+        uploadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        urlBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        if (fileInput.files.length) uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        urlBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+function startLoading(type) {
+    resultArea.innerHTML = '';
+    loadingCard.classList.remove('hidden');
+    setButtonsState(true);
+
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const step3 = document.getElementById('step-3');
+
+    step1.className = 'flex items-center gap-2.5 text-indigo-300';
+    step1.firstElementChild.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-ping';
+    step2.className = 'flex items-center gap-2.5 text-dark-500';
+    step2.firstElementChild.className = 'w-2 h-2 rounded-full bg-dark-700';
+    step3.className = 'flex items-center gap-2.5 text-dark-500';
+    step3.firstElementChild.className = 'w-2 h-2 rounded-full bg-dark-700';
+
+    secondsElapsed = 0;
+    loadingTimer.textContent = '0s';
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        secondsElapsed++;
+        loadingTimer.textContent = secondsElapsed + 's';
+        if (secondsElapsed === 3) {
+            step1.firstElementChild.className = 'w-2 h-2 rounded-full bg-green-400';
+            step2.className = 'flex items-center gap-2.5 text-indigo-300';
+            step2.firstElementChild.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-ping';
+        }
+        if (secondsElapsed === 15) {
+            step2.firstElementChild.className = 'w-2 h-2 rounded-full bg-green-400';
+            step3.className = 'flex items-center gap-2.5 text-indigo-300';
+            step3.firstElementChild.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-ping';
+        }
+    }, 1000);
+}
+
+function stopLoading() {
+    clearInterval(timerInterval);
+    loadingCard.classList.add('hidden');
+    setButtonsState(false);
+}
+
+document.body.addEventListener('htmx:beforeRequest', (e) => {
+    startLoading(e.target.id);
+});
+
+document.body.addEventListener('htmx:afterRequest', () => {
+    stopLoading();
+});
+
+document.body.addEventListener('htmx:responseError', () => {
+    stopLoading();
+    showToast('Failed to process request', 'error');
+});
 
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length) {
-        fileName.textContent = fileInput.files[0].name;
+        fileName.textContent = '📄 ' + fileInput.files[0].name;
         fileName.classList.remove('hidden');
         uploadBtn.disabled = false;
+        uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 });
 
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-indigo-500'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-indigo-500'));
+dropZone.addEventListener('click', (e) => {
+    if (e.target !== fileInput) {
+        fileInput.click();
+    }
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-emerald-500'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-emerald-500'));
 dropZone.addEventListener('drop', e => {
     e.preventDefault();
-    dropZone.classList.remove('border-indigo-500');
+    dropZone.classList.remove('border-emerald-500');
     if (e.dataTransfer.files.length) {
         fileInput.files = e.dataTransfer.files;
-        fileName.textContent = e.dataTransfer.files[0].name;
+        fileName.textContent = '📄 ' + e.dataTransfer.files[0].name;
         fileName.classList.remove('hidden');
         uploadBtn.disabled = false;
+        uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 });
 </script>
 {% endblock %}
+
