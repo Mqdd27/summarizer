@@ -145,6 +145,20 @@
             </button>
         </form>
     </div>
+
+    <!-- Research Panel -->
+    <div id="research-panel" class="bg-dark-900 border border-dark-800 rounded-xl p-5 mt-4">
+        <h4 class="text-base font-semibold text-white mb-3">Research: Add New Source</h4>
+        <form id="research-form" hx-post="/api/chat-research" hx-target="#chat-messages" hx-swap="beforeend" class="space-y-3">
+            <div class="flex gap-2">
+                <input type="url" name="new_url" placeholder="Enter a new URL..."
+                       class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <button type="submit" name="new_url" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg">Add</button>
+            </div>
+            <input type="file" name="new_file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="hidden">
+            <label for="new-file" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm">Or upload PDF/Image</label>
+        </form>
+    </div>
 </div>
 
 <script>

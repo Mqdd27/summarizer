@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 import config
-from services.summarizer import process_url, ask_document
+from services.summarizer import process_url, ask_document, ask_with_sources
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
@@ -92,3 +92,42 @@ async def chat_document(request: Request, question: str = Form(...), context: st
             name="chat_message.html",
             context={"question": question, "answer_html": error_html},
         )
+
+
+@router.post("/api/chat-research")
+async def chat_research(request: Request, question: str = Form(...), existing_context: str = Form(...), new_url: str = Form(None), new_file: UploadFile = File(None)):
+    new_context = ""
+    if new_url:
+        result = await process_url(new_url)
+        if "error" not in result:
+            new_context = result.get("summary_md", "")
+    elif new_file and new_file.filename:
+        import shutil, os
+        filename = f"research_{uuid4().hex[:8]}_{new_file.filename}"
+        filepath = os.path.join(config.UPLOAD_DIR, filename)
+        content = await new_file.read()
+        with open(filepath, "wb") as f:
+            f.write(content)
+        try:
+            from services.summarizer import extract_from_pdf, extract_from_image
+            import mimetypes
+            mime = new_file.content_type or mimetypes.guess_type(new_file.filename)[0] or ""
+            if mime in config.ALLOWED_PDF_TYPES:
+                extracted = extract_from_pdf(filepath)
+                new_context = extracted.get("summary_md", "") if hasattr(extracted, "get") else ""
+            elif mime in config.ALLOWED_IMAGE_TYPES:
+                extracted = extract_from_image(filepath)
+                new_context = extracted.get("summary_md", "") if hasattr(extracted, "get") else ""
+        finally:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+    elif new_file and not new_file.filename:
+        return HTMLResponse("")
+
+    if not new_context:
+        return HTMLResponse("")
+
+    answer_html = await ask_with_sources(existing_context, new_context, question)
+    return templates.TemplateResponse(
+        request=request, name="chat_message.html", context={"question": question, "answer_html": answer_html}
+    )
