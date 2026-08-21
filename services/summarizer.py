@@ -15,7 +15,7 @@ from services.cache import get_cached, set_cached, log_request
 logger = logging.getLogger("summarizer")
 logging.basicConfig(level=logging.INFO)
 
-SYSTEM_PROMPT = "You are an expert document summarizer and assistant. Respond directly in clean Markdown format without internal thinking tags. Language rule: Match the language of the source document or the user's question. If the document/question is in Indonesian (Bahasa Indonesia), write your response in Indonesian. If in English, write in English. Never use Vietnamese or other unrelated languages."
+SYSTEM_PROMPT = "You are an expert document summarizer and assistant. Respond directly in clean Markdown format without internal thinking tags. Language rule: Match the language of the source document or the user's question. If the document/question is in Indonesian (Bahasa Indonesia), write your response in Indonesian. If in English, write in English."
 
 SUMMARY_PROMPT = """Analyze the following content and produce a structured summary in Markdown format.
 Match the language of the source content (Indonesian if content is Indonesian, English if English).
