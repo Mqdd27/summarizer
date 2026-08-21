@@ -51,7 +51,43 @@ Output Markdown directly without internal thinking tags.
 
 
 async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str, Any]:
-    if images:
+    # Check if using 9router / OpenAI-compatible endpoint
+    is_openai_compat = "/v1" in config.OLLAMA_HOST or bool(config.ROUTER_API_KEY)
+    
+    if is_openai_compat:
+        base_url = config.OLLAMA_HOST.rstrip("/")
+        if not base_url.endswith("/v1"):
+            endpoint = f"{base_url}/v1/chat/completions"
+        else:
+            endpoint = f"{base_url}/chat/completions"
+        
+        headers = {
+            "Content-Type": "application/json",
+        }
+        if config.ROUTER_API_KEY:
+            headers["Authorization"] = f"Bearer {config.ROUTER_API_KEY}"
+        
+        content_block: Any = prompt
+        if images:
+            content_block = [{"type": "text", "text": prompt}]
+            for img in images:
+                content_block.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{img}"}
+                })
+        
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content_block}
+        ]
+        payload = {
+            "model": config.OLLAMA_MODEL,
+            "messages": messages,
+            "max_tokens": config.OLLAMA_NUM_PREDICT,
+            "temperature": config.OLLAMA_TEMPERATURE,
+        }
+    elif images:
+        headers = {}
         endpoint = f"{config.OLLAMA_HOST}/api/chat"
         payload = {
             "model": config.OLLAMA_MODEL,
@@ -68,6 +104,7 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
             "keep_alive": config.OLLAMA_KEEP_ALIVE,
         }
     else:
+        headers = {}
         endpoint = f"{config.OLLAMA_HOST}/api/generate"
         formatted_prompt = f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
         payload = {
@@ -89,25 +126,54 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
         try:
             async with httpx.AsyncClient(timeout=config.OLLAMA_TIMEOUT) as client:
                 start = time.time()
-                logger.info(f"Ollama request attempt {attempt + 1}, model={config.OLLAMA_MODEL}")
-                resp = await client.post(endpoint, json=payload)
+                logger.info(f"AI request attempt {attempt + 1}, model={config.OLLAMA_MODEL}, endpoint={endpoint}")
+                resp = await client.post(endpoint, json=payload, headers=headers)
                 duration = time.time() - start
                 resp.raise_for_status()
-                data = resp.json()
-                if images:
+                
+                # Check for streaming response vs json
+                raw_text = resp.text
+                if is_openai_compat:
+                    if raw_text.startswith("data: ") or "\ndata: " in raw_text:
+                        lines = raw_text.strip().split("\n")
+                        content_parts = []
+                        reasoning_parts = []
+                        for line in lines:
+                            line = line.strip()
+                            if line.startswith("data: ") and line != "data: [DONE]":
+                                try:
+                                    import json
+                                    chunk = json.loads(line[6:])
+                                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                    if "content" in delta and delta["content"]:
+                                        content_parts.append(delta["content"])
+                                    elif "reasoning_content" in delta and delta["reasoning_content"]:
+                                        reasoning_parts.append(delta["reasoning_content"])
+                                except Exception:
+                                    pass
+                        content = "".join(content_parts).strip()
+                        if not content and reasoning_parts:
+                            content = "".join(reasoning_parts).strip()
+                    else:
+                        data = resp.json()
+                        content = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+                elif images:
+                    data = resp.json()
                     content = data.get("message", {}).get("content", "").strip()
                     if not content:
                         content = data.get("message", {}).get("thinking", "").strip()
                 else:
+                    data = resp.json()
                     content = data.get("response", "").strip()
                     if not content:
                         content = data.get("thinking", "").strip()
+                
                 if not content:
                     raise ValueError("Empty response from model")
-                logger.info(f"Ollama response received in {duration:.1f}s")
+                logger.info(f"AI response received in {duration:.1f}s")
                 return {"content": content, "duration": duration}
         except (httpx.TimeoutException, httpx.ConnectError) as e:
-            logger.warning(f"Ollama attempt {attempt + 1} failed: {e}")
+            logger.warning(f"AI attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
                 wait = 2 ** attempt
                 logger.info(f"Retrying in {wait}s...")
@@ -116,10 +182,10 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
             else:
                 raise
         except Exception as e:
-            logger.error(f"Ollama error: {e}")
+            logger.error(f"AI error: {e}")
             raise
 
-    raise RuntimeError("Ollama request failed after retries")
+    raise RuntimeError("AI request failed after retries")
 
 
 def count_words(text: str) -> int:
