@@ -131,14 +131,31 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
                 duration = time.time() - start
                 resp.raise_for_status()
                 
-                # Check for streaming response vs json
-                raw_text = resp.text
+                # Parse response
+                content = ""
                 if is_openai_compat:
-                    if raw_text.startswith("data: ") or "\ndata: " in raw_text:
-                        lines = raw_text.strip().split("\n")
-                        content_parts = []
-                        reasoning_parts = []
-                        for line in lines:
+                    raw_text = resp.text.strip()
+                    # Strip any trailing 'data: [DONE]' from 9router responses
+                    if "\ndata: [DONE]" in raw_text:
+                        raw_text = raw_text.split("\ndata: [DONE]")[0].strip()
+                    elif raw_text.endswith("data: [DONE]"):
+                        raw_text = raw_text[:-12].strip()
+                    
+                    try:
+                        # 1. Try standard JSON response
+                        import json
+                        data = json.loads(raw_text)
+                        choice = data.get("choices", [{}])[0]
+                        msg = choice.get("message", {})
+                        content = msg.get("content", "").strip()
+                        if not content and "reasoning_content" in msg:
+                            content = msg.get("reasoning_content", "").strip()
+                    except Exception:
+                        pass
+                    
+                    # 2. If empty or failed, check for SSE streaming format
+                    if not content:
+                        for line in resp.text.strip().split("\n"):
                             line = line.strip()
                             if line.startswith("data: ") and line != "data: [DONE]":
                                 try:
@@ -146,17 +163,12 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
                                     chunk = json.loads(line[6:])
                                     delta = chunk.get("choices", [{}])[0].get("delta", {})
                                     if "content" in delta and delta["content"]:
-                                        content_parts.append(delta["content"])
+                                        content += delta["content"]
                                     elif "reasoning_content" in delta and delta["reasoning_content"]:
-                                        reasoning_parts.append(delta["reasoning_content"])
+                                        content += delta["reasoning_content"]
                                 except Exception:
                                     pass
-                        content = "".join(content_parts).strip()
-                        if not content and reasoning_parts:
-                            content = "".join(reasoning_parts).strip()
-                    else:
-                        data = resp.json()
-                        content = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+                        content = content.strip()
                 elif images:
                     data = resp.json()
                     content = data.get("message", {}).get("content", "").strip()
