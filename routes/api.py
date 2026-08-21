@@ -3,7 +3,7 @@ import socket
 import ipaddress
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Request, Form, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
@@ -86,7 +86,7 @@ async def chat_document(request: Request, question: str = Form(...), context: st
             context={"question": question, "answer_html": answer_html},
         )
     except Exception as e:
-        error_html = f"<p class='text-red-400'>Error: {e}</p>"
+        error_html = f"<p class=text-red-400>Error: {e}</p>"
         return templates.TemplateResponse(
             request=request,
             name="chat_message.html",
