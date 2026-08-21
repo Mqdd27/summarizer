@@ -61,7 +61,13 @@
                 <h3 class="font-semibold text-white text-base" id="loading-title">AI is analyzing document...</h3>
                 <p class="text-xs text-indigo-400" id="loading-subtitle">Extracting content and feeding to Qwen model</p>
             </div>
-            <div class="ml-auto text-xs text-dark-500 font-mono" id="loading-timer">0s</div>
+            <div class="ml-auto flex items-center gap-3">
+                <span class="text-xs text-dark-500 font-mono" id="loading-timer">0s</span>
+                <button type="button" id="stop-summarize-btn" onclick="stopSummarize()" class="flex items-center gap-1 bg-red-900/60 hover:bg-red-800 text-red-300 border border-red-700/60 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+                    <span>Stop</span>
+                </button>
+            </div>
         </div>
 
         <!-- Animated Steps -->
@@ -105,6 +111,7 @@ const loadingTimer = document.getElementById('loading-timer');
 
 let timerInterval = null;
 let secondsElapsed = 0;
+let activeFormId = null;
 
 function setButtonsState(disabled) {
     uploadBtn.disabled = disabled || !fileInput.files.length;
@@ -121,6 +128,7 @@ function setButtonsState(disabled) {
 }
 
 function startLoading(type) {
+    activeFormId = type;
     resultArea.innerHTML = '';
     loadingCard.classList.remove('hidden');
     setButtonsState(true);
@@ -159,6 +167,20 @@ function stopLoading() {
     clearInterval(timerInterval);
     loadingCard.classList.add('hidden');
     setButtonsState(false);
+    activeFormId = null;
+}
+
+function stopSummarize() {
+    if (activeFormId) {
+        const formEl = document.getElementById(activeFormId);
+        if (formEl && formEl.htmxInternalData && formEl.htmxInternalData.xhr) {
+            formEl.htmxInternalData.xhr.abort();
+        }
+        htmx.trigger(formEl, 'htmx:abort');
+    }
+    stopLoading();
+    resultArea.innerHTML = '<div class="bg-dark-900 border border-dark-800 rounded-xl p-5 text-center text-dark-400 text-sm">Summarization stopped by user.</div>';
+    showToast('Summarization stopped', 'info');
 }
 
 document.body.addEventListener('htmx:beforeRequest', (e) => {
