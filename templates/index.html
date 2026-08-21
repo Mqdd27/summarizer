@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+{% block title %}AI Summarizer - Summarize Anything{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="text-center mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">AI Summarizer</h1>
+        <p class="text-dark-400 text-lg">Summarize articles, PDFs, and images with AI</p>
+    </div>
+
+    <div class="space-y-6">
+        <!-- URL Form -->
+        <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                <h2 class="text-lg font-semibold text-white">Summarize URL</h2>
+            </div>
+            <form hx-post="/api/summarize-url" hx-target="#result-area" hx-indicator="#loading-url" hx-swap="innerHTML">
+                <div class="flex gap-2">
+                    <input type="url" name="url" placeholder="https://example.com/article"
+                        class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                    <button type="submit" class="hide-on-request bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors whitespace-nowrap">
+                        Summarize
+                    </button>
+                </div>
+                <div id="loading-url" class="htmx-indicator mt-4">
+                    <div class="flex items-center gap-3 text-indigo-400">
+                        <svg class="w-5 h-5 spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        <div>
+                            <p class="font-medium">Processing URL...</p>
+                            <p class="text-sm text-dark-500 animate-pulse-slow">Downloading, extracting, and summarizing content</p>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- File Upload -->
+        <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                <h2 class="text-lg font-semibold text-white">Upload PDF or Image</h2>
+            </div>
+            <form hx-post="/upload" hx-target="#result-area" hx-indicator="#loading-file" hx-encoding="multipart/form-data" hx-swap="innerHTML">
+                <div class="border-2 border-dashed border-dark-700 rounded-lg p-6 text-center hover:border-indigo-500/50 transition-colors" id="drop-zone">
+                    <input type="file" name="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" class="hidden" required>
+                    <label for="file-input" class="cursor-pointer">
+                        <svg class="w-10 h-10 text-dark-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <p class="text-dark-400 mb-1">Click to upload or drag & drop</p>
+                        <p class="text-dark-600 text-sm">PDF, JPG, PNG, WEBP (max 20MB)</p>
+                    </label>
+                    <p id="file-name" class="mt-2 text-sm text-indigo-400 hidden"></p>
+                </div>
+                <button type="submit" id="upload-btn" class="hide-on-request mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Summarize File
+                </button>
+                <div id="loading-file" class="htmx-indicator mt-4">
+                    <div class="flex items-center gap-3 text-emerald-400">
+                        <svg class="w-5 h-5 spinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        <div>
+                            <p class="font-medium">Processing file...</p>
+                            <p class="text-sm text-dark-500 animate-pulse-slow">Extracting content and generating summary</p>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="result-area" class="mt-8"></div>
+</div>
+
+<script>
+const fileInput = document.getElementById('file-input');
+const fileName = document.getElementById('file-name');
+const uploadBtn = document.getElementById('upload-btn');
+const dropZone = document.getElementById('drop-zone');
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+        fileName.textContent = fileInput.files[0].name;
+        fileName.classList.remove('hidden');
+        uploadBtn.disabled = false;
+    }
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-indigo-500'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-indigo-500'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('border-indigo-500');
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        fileName.textContent = e.dataTransfer.files[0].name;
+        fileName.classList.remove('hidden');
+        uploadBtn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

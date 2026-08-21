@@ -1,0 +1,123 @@
+{% if error %}
+<div class="bg-red-900/30 border border-red-800 rounded-xl p-6">
+    <div class="flex items-start gap-3">
+        <svg class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div>
+            <h3 class="text-red-400 font-semibold mb-1">Error</h3>
+            <p class="text-red-300">{{ error }}</p>
+        </div>
+    </div>
+</div>
+{% elif summary_html %}
+<div class="space-y-4">
+    <!-- Metadata -->
+    <div class="bg-dark-900 border border-dark-800 rounded-xl p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium
+                {% if source_type == 'URL' %}bg-indigo-900/50 text-indigo-300 border border-indigo-800
+                {% elif source_type == 'PDF' %}bg-emerald-900/50 text-emerald-300 border border-emerald-800
+                {% else %}bg-amber-900/50 text-amber-300 border border-amber-800{% endif %}">
+                {{ source_type }}
+            </span>
+            {% if cached %}<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-900/50 text-purple-300 border border-purple-800">Cached</span>{% endif %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-dark-800 text-dark-300 border border-dark-700">{{ model_used }}</span>
+        </div>
+
+        {% if source_title %}<h2 class="text-lg font-semibold text-white mb-3">{{ source_title }}</h2>{% endif %}
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Processing Time</p>
+                <p class="text-white font-medium">{{ processing_time }}</p>
+            </div>
+            {% if original_words %}
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Original</p>
+                <p class="text-white font-medium">{{ original_words }} words</p>
+            </div>
+            {% endif %}
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Summary</p>
+                <p class="text-white font-medium">{{ summary_words }} words</p>
+            </div>
+            {% if compression_ratio and compression_ratio != 'N/A' %}
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Compressed</p>
+                <p class="text-white font-medium">{{ compression_ratio }}</p>
+            </div>
+            {% endif %}
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Reading Time</p>
+                <p class="text-white font-medium">{{ reading_time }}</p>
+            </div>
+            {% if chunk_count and chunk_count > 1 %}
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Chunks</p>
+                <p class="text-white font-medium">{{ chunk_count }}</p>
+            </div>
+            {% endif %}
+            {% if page_count %}
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Pages</p>
+                <p class="text-white font-medium">{{ page_count }}</p>
+            </div>
+            {% endif %}
+            {% if image_size %}
+            <div class="bg-dark-800/50 rounded-lg p-3">
+                <p class="text-dark-500 text-xs mb-1">Image Size</p>
+                <p class="text-white font-medium">{{ image_size }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="bg-dark-900 border border-dark-800 rounded-xl p-3">
+        <div class="flex flex-wrap gap-2">
+            <button onclick="copyText(document.getElementById('summary-text').innerText, 'Summary')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                Copy
+            </button>
+            <button onclick="copyText(summaryMd, 'Markdown')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                Copy Markdown
+            </button>
+            <button onclick="downloadFile(document.getElementById('summary-text').innerText, 'summary.txt', 'text/plain')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                TXT
+            </button>
+            <button onclick="downloadFile(summaryMd, 'summary.md', 'text/markdown')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                MD
+            </button>
+            <button onclick="downloadFile(document.getElementById('summary-content').innerHTML, 'summary.html', 'text/html')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                HTML
+            </button>
+            <button onclick="window.print()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Content -->
+    <div class="bg-dark-900 border border-dark-800 rounded-xl p-6" id="summary-text">
+        <div class="prose" id="summary-content">
+            {{ summary_html | safe }}
+        </div>
+    </div>
+</div>
+
+<script>
+const summaryMd = {{ summary_md | tojson }};
+function downloadFile(content, filename, type) {
+    const blob = new Blob([content], {type});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    showToast(filename + ' downloaded!');
+}
+</script>
+{% endif %}
