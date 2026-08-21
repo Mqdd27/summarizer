@@ -15,7 +15,7 @@ Web application for summarizing URLs, PDFs, and images using Ollama AI.
 ## Installation
 
 ```bash
-cd /home/mqdd/apps/summarizer
+cd ~/apps/summarizer
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -51,8 +51,8 @@ python app.py
 ## Running on Server
 
 ```bash
-source /home/mqdd/apps/summarizer/.venv/bin/activate
-cd /home/mqdd/apps/summarizer
+source ~/apps/summarizer/.venv/bin/activate
+cd ~/apps/summarizer
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
@@ -88,4 +88,4 @@ Then restart: `sudo systemctl restart summarizer`
 - Check Ollama: `curl http://127.0.0.1:11434/api/tags`
 - Check logs: `journalctl -u summarizer -f`
 - Check port: `ss -lntp | grep 8000`
-- Manual start: `cd /home/mqdd/apps/summarizer && source .venv/bin/activate && python app.py`
+- Manual start: `cd ~/apps/summarizer && source .venv/bin/activate && python app.py`
