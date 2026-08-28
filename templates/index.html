@@ -1,269 +1,47 @@
 {% extends "layout.html" %}
-{% block title %}AI Summarizer - Summarize Anything{% endblock %}
+{% block title %}Summarizer{% endblock %}
 {% block content %}
-<div class="w-full px-2 sm:px-4">
-    <div class="max-w-2xl mx-auto">
-    <div class="text-center mb-10">
-        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">AI Summarizer</h1>
-        <p class="text-dark-400 text-lg">Summarize articles, PDFs, and images with AI</p>
-    </div>
-
-    <div class="mb-6 bg-dark-900 border border-dark-800 rounded-xl p-5">
-        <label for="model-select" class="block text-sm font-medium text-white mb-2">9router Model</label>
-        <select id="model-select" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            {% for model in models %}
-            <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
-            {% endfor %}
+<section style="max-width:720px;margin:0 auto 32px">
+    <p class="muted" style="font:12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0 0 8px">SOURCE PROCESSOR</p>
+    <h1 style="font-size:clamp(30px,5vw,48px);line-height:1.05;margin:0 0 12px">Add something to read.</h1>
+    <p class="muted" style="margin:0">An article, a PDF, or an image. The result will appear as a document.</p>
+</section>
+<section style="max-width:720px;margin:0 auto">
+    <div style="border-top:1px solid var(--ink);border-bottom:1px solid var(--hairline);padding:16px 0">
+        <label for="model-select" style="display:block;font:bold 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-bottom:6px">MODEL</label>
+        <select id="model-select" style="width:100%;border:1px solid var(--ink);background:var(--ground);padding:9px">
+            {% for model in models %}<option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>{% endfor %}
         </select>
-        <p class="text-xs text-dark-500 mt-2">The selected model is used for summaries and follow-up chat.</p>
     </div>
-
-    <div class="space-y-6">
-        <!-- URL Form -->
-        <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
-            <div class="flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                <h2 class="text-lg font-semibold text-white">Summarize URL</h2>
-            </div>
-            <form id="url-form" hx-post="/api/summarize-url" hx-target="#result-area" hx-swap="innerHTML">
-                <input type="hidden" name="model" class="selected-model-input">
-                <div class="flex gap-2">
-                    <input type="url" name="url" id="url-input" placeholder="https://example.com/article"
-                        class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
-                    <button type="submit" id="url-btn" class="action-btn bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span>Summarize</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- File Upload -->
-        <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
-            <div class="flex items-center gap-2 mb-4">
-                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                <h2 class="text-lg font-semibold text-white">Upload PDF or Image</h2>
-            </div>
-            <form id="file-form" hx-post="/upload" hx-target="#result-area" hx-encoding="multipart/form-data" hx-swap="innerHTML">
-                <input type="hidden" name="model" class="selected-model-input">
-                <div class="border-2 border-dashed border-dark-700 rounded-lg p-6 text-center hover:border-indigo-500/50 transition-colors cursor-pointer" id="drop-zone">
-                    <input type="file" name="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" class="hidden" required>
-                    <label for="file-input" class="cursor-pointer">
-                        <svg class="w-10 h-10 text-dark-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <p class="text-dark-400 mb-1" id="drop-text">Click to upload or drag & drop</p>
-                        <p class="text-dark-600 text-sm">PDF, JPG, PNG, WEBP (max 20MB)</p>
-                    </label>
-                    <p id="file-name" class="mt-3 text-sm font-medium text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-lg py-1.5 px-3 inline-block hidden"></p>
-                </div>
-                <button type="submit" id="upload-btn" class="action-btn mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    <span>Summarize File</span>
-                </button>
-            </form>
-        </div>
+    <div style="padding:24px 0;border-bottom:1px solid var(--hairline)">
+        <form id="url-form" hx-post="/api/summarize-url" hx-target="#result-area" hx-swap="innerHTML">
+            <input type="hidden" name="model" class="selected-model-input">
+            <label for="url-input" style="display:block;font:bold 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-bottom:6px">PASTE A URL</label>
+            <div style="display:flex;gap:8px"><input type="url" name="url" id="url-input" placeholder="https://..." required style="min-width:0;flex:1;border:1px solid var(--ink);padding:10px;background:var(--ground)"><button type="submit" id="url-btn" style="border:1px solid var(--ink);padding:10px 16px;background:var(--ink);color:#fff">Summarize</button></div>
+        </form>
     </div>
-
-    <!-- Loading Skeleton Indicator -->
-    <div id="loading-card" class="hidden mt-8 bg-dark-900 border border-indigo-900/50 rounded-xl p-6 shadow-2xl">
-        <div class="flex items-center gap-3 mb-6">
-            <div class="relative flex items-center justify-center">
-                <svg class="w-6 h-6 text-indigo-500 spinner" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
-            </div>
-            <div>
-                <h3 class="font-semibold text-white text-base" id="loading-title">AI is analyzing document...</h3>
-                <p class="text-xs text-indigo-400" id="loading-subtitle">Preparing selected AI model...</p>
-            </div>
-            <div class="ml-auto flex items-center gap-3">
-                <span class="text-xs text-dark-500 font-mono" id="loading-timer">0s</span>
-                <button type="button" id="stop-summarize-btn" onclick="stopSummarize()" class="flex items-center gap-1 bg-red-900/60 hover:bg-red-800 text-red-300 border border-red-700/60 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium">
-                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-                    <span>Stop</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Animated Steps -->
-        <div class="space-y-3 mb-6 border-y border-dark-800 py-4 text-xs font-medium">
-            <div class="flex items-center gap-2.5 text-indigo-300" id="step-1">
-                <div class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></div>
-                <span>Extracting document & preparing chunks...</span>
-            </div>
-            <div class="flex items-center gap-2.5 text-dark-500" id="step-2">
-                <div class="w-2 h-2 rounded-full bg-dark-700"></div>
-                <span id="inference-status">Running AI inference...</span>
-            </div>
-            <div class="flex items-center gap-2.5 text-dark-500" id="step-3">
-                <div class="w-2 h-2 rounded-full bg-dark-700"></div>
-                <span>Formatting structured Markdown result...</span>
-            </div>
-        </div>
-
-        <!-- Skeletons -->
-        <div class="space-y-3 animate-pulse">
-            <div class="h-4 bg-dark-800 rounded w-3/4"></div>
-            <div class="h-3 bg-dark-800 rounded w-full"></div>
-            <div class="h-3 bg-dark-800 rounded w-5/6"></div>
-            <div class="h-3 bg-dark-800 rounded w-2/3"></div>
-        </div>
+    <div style="padding:24px 0">
+        <form id="file-form" hx-post="/upload" hx-target="#result-area" hx-encoding="multipart/form-data" hx-swap="innerHTML">
+            <input type="hidden" name="model" class="selected-model-input">
+            <label for="file-input" style="display:block;font:bold 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-bottom:6px">ADD A FILE</label>
+            <input type="file" name="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required style="width:100%;border:1px solid var(--ink);padding:9px;background:var(--ground)">
+            <p id="file-meta" class="muted" style="font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:8px 0"></p>
+            <button type="submit" id="upload-btn" disabled style="margin-top:8px;border:1px solid var(--ink);padding:10px 16px;background:var(--ink);color:#fff;opacity:.45">Summarize file</button>
+        </form>
     </div>
-    </div>
-
-    <div id="result-area" class="w-full"></div>
-</div>
-
+</section>
+<div id="loading-card" hidden style="max-width:720px;margin:32px auto;border-top:1px solid var(--ink);border-bottom:1px solid var(--hairline);padding:16px 0;font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"><strong>PROCESSING</strong><span id="loading-subtitle" class="muted"> Preparing source...</span><span id="loading-timer" class="muted" style="float:right">0s</span><button type="button" id="stop-summarize-btn" onclick="stopSummarize()" style="float:right;margin-right:16px;border:0;background:none;text-decoration:underline">Stop</button><div style="clear:both;margin-top:12px;color:var(--muted)"><span id="inference-status">Running AI inference...</span></div></div>
+<div id="result-area"></div>
 <script>
-const fileInput = document.getElementById('file-input');
-const fileName = document.getElementById('file-name');
-const uploadBtn = document.getElementById('upload-btn');
-const urlBtn = document.getElementById('url-btn');
-const urlInput = document.getElementById('url-input');
-const dropZone = document.getElementById('drop-zone');
-const loadingCard = document.getElementById('loading-card');
-const resultArea = document.getElementById('result-area');
-const loadingTimer = document.getElementById('loading-timer');
-const modelSelect = document.getElementById('model-select');
-const loadingSubtitle = document.getElementById('loading-subtitle');
-const inferenceStatus = document.getElementById('inference-status');
-
-function selectedProviderLabel() {
-    const model = modelSelect.value;
-    const provider = model.includes('/') ? model.split('/', 1)[0] : model;
-    return `${provider} · ${model}`;
-}
-
-function syncSelectedModel() {
-    document.querySelectorAll('.selected-model-input').forEach(input => {
-        input.value = modelSelect.value;
-    });
-}
-modelSelect.addEventListener('change', syncSelectedModel);
-syncSelectedModel();
-
-let timerInterval = null;
-let secondsElapsed = 0;
-let activeFormId = null;
-
-function setButtonsState(disabled) {
-    uploadBtn.disabled = disabled || !fileInput.files.length;
-    urlBtn.disabled = disabled;
-    urlInput.disabled = disabled;
-    fileInput.disabled = disabled;
-    if (disabled) {
-        uploadBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        urlBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    } else {
-        if (fileInput.files.length) uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        urlBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-}
-
-function startLoading(type) {
-    activeFormId = type;
-    resultArea.innerHTML = '';
-    const providerLabel = selectedProviderLabel();
-    loadingSubtitle.textContent = `Preparing ${providerLabel}...`;
-    inferenceStatus.textContent = `Running AI inference via ${providerLabel}...`;
-    loadingCard.classList.remove('hidden');
-    setButtonsState(true);
-
-    const step1 = document.getElementById('step-1');
-    const step2 = document.getElementById('step-2');
-    const step3 = document.getElementById('step-3');
-
-    step1.className = 'flex items-center gap-2.5 text-indigo-300';
-    step1.firstElementChild.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-ping';
-    step2.className = 'flex items-center gap-2.5 text-dark-500';
-    step2.firstElementChild.className = 'w-2 h-2 rounded-full bg-dark-700';
-    step3.className = 'flex items-center gap-2.5 text-dark-500';
-    step3.firstElementChild.className = 'w-2 h-2 rounded-full bg-dark-700';
-
-    secondsElapsed = 0;
-    loadingTimer.textContent = '0s';
-    clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-        secondsElapsed++;
-        loadingTimer.textContent = secondsElapsed + 's';
-        if (secondsElapsed === 3) {
-            step1.firstElementChild.className = 'w-2 h-2 rounded-full bg-green-400';
-            step2.className = 'flex items-center gap-2.5 text-indigo-300';
-            step2.firstElementChild.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-ping';
-        }
-        if (secondsElapsed === 15) {
-            step2.firstElementChild.className = 'w-2 h-2 rounded-full bg-green-400';
-            step3.className = 'flex items-center gap-2.5 text-indigo-300';
-            step3.firstElementChild.className = 'w-2 h-2 rounded-full bg-indigo-400 animate-ping';
-        }
-    }, 1000);
-}
-
-function stopLoading() {
-    clearInterval(timerInterval);
-    loadingCard.classList.add('hidden');
-    setButtonsState(false);
-    activeFormId = null;
-}
-
-function stopSummarize() {
-    if (activeFormId) {
-        const formEl = document.getElementById(activeFormId);
-        if (formEl && formEl.htmxInternalData && formEl.htmxInternalData.xhr) {
-            formEl.htmxInternalData.xhr.abort();
-        }
-        htmx.trigger(formEl, 'htmx:abort');
-    }
-    stopLoading();
-    resultArea.innerHTML = '<div class="bg-dark-900 border border-dark-800 rounded-xl p-5 text-center text-dark-400 text-sm">Summarization stopped by user.</div>';
-    showToast('Summarization stopped', 'info');
-}
-
-document.body.addEventListener('htmx:beforeRequest', (e) => {
-    if (e.target && (e.target.id === 'url-form' || e.target.id === 'file-form')) {
-        startLoading(e.target.id);
-    }
-});
-
-document.body.addEventListener('htmx:afterRequest', (e) => {
-    if (e.target && (e.target.id === 'url-form' || e.target.id === 'file-form')) {
-        stopLoading();
-    }
-});
-
-document.body.addEventListener('htmx:responseError', (e) => {
-    if (e.target && (e.target.id === 'url-form' || e.target.id === 'file-form')) {
-        stopLoading();
-        showToast('Failed to process request', 'error');
-    }
-});
-
-fileInput.addEventListener('change', () => {
-    if (fileInput.files.length) {
-        fileName.textContent = '📄 ' + fileInput.files[0].name;
-        fileName.classList.remove('hidden');
-        uploadBtn.disabled = false;
-        uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-});
-
-dropZone.addEventListener('click', (e) => {
-    if (e.target !== fileInput) {
-        fileInput.click();
-    }
-});
-
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-emerald-500'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-emerald-500'));
-dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('border-emerald-500');
-    if (e.dataTransfer.files.length) {
-        fileInput.files = e.dataTransfer.files;
-        fileName.textContent = '📄 ' + e.dataTransfer.files[0].name;
-        fileName.classList.remove('hidden');
-        uploadBtn.disabled = false;
-        uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-});
+const fileInput=document.getElementById('file-input'), fileMeta=document.getElementById('file-meta'), uploadBtn=document.getElementById('upload-btn'), modelSelect=document.getElementById('model-select'), loadingCard=document.getElementById('loading-card'), resultArea=document.getElementById('result-area'), loadingTimer=document.getElementById('loading-timer'), loadingSubtitle=document.getElementById('loading-subtitle'), inferenceStatus=document.getElementById('inference-status');
+let timerInterval=null, secondsElapsed=0, activeFormId=null;
+function syncModel(){document.querySelectorAll('.selected-model-input').forEach(i=>i.value=modelSelect.value)}
+function provider(){const m=modelSelect.value;return `${m.includes('/')?m.split('/')[0]:m} · ${m}`}
+modelSelect.addEventListener('change',syncModel); syncModel();
+fileInput.addEventListener('change',()=>{const f=fileInput.files[0]; fileMeta.textContent=f?`${f.name} · ${(f.size/1048576).toFixed(2)} MB`:''; uploadBtn.disabled=!f; uploadBtn.style.opacity=f?'1':'.45'});
+function startLoading(id){activeFormId=id;loadingCard.hidden=false;resultArea.innerHTML='';secondsElapsed=0;loadingTimer.textContent='0s';loadingSubtitle.textContent=` Preparing ${provider()}...`;inferenceStatus.textContent=`Running AI inference via ${provider()}...`;clearInterval(timerInterval);timerInterval=setInterval(()=>loadingTimer.textContent=`${++secondsElapsed}s`,1000);document.querySelectorAll('#url-form button,#file-form button,#url-form input,#file-form input,#model-select').forEach(e=>e.disabled=true)}
+function stopLoading(){clearInterval(timerInterval);loadingCard.hidden=true;document.querySelectorAll('#url-form input,#file-form input,#model-select').forEach(e=>e.disabled=false);uploadBtn.disabled=!fileInput.files.length;activeFormId=null}
+function stopSummarize(){if(activeFormId){const f=document.getElementById(activeFormId);htmx.trigger(f,'htmx:abort')}stopLoading();resultArea.innerHTML='<p style="border-top:1px solid var(--hairline);padding:16px 0">Processing stopped.</p>'}
+document.body.addEventListener('htmx:beforeRequest',e=>{if(['url-form','file-form'].includes(e.target.id))startLoading(e.target.id)});document.body.addEventListener('htmx:afterRequest',e=>{if(['url-form','file-form'].includes(e.target.id))stopLoading()});
 </script>
 {% endblock %}
-

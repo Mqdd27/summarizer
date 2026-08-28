@@ -1,85 +1,72 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AI Summarizer{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>{% block title %}Summarizer{% endblock %}</title>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        dark: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617' }
-                    }
-                }
-            }
-        }
+        (() => { const saved = localStorage.getItem('summarizer-theme'); const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; })();
     </script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <style>
-        .prose { max-width: none; }
-        .prose h1 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #f1f5f9; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
-        .prose h2 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; color: #e2e8f0; }
-        .prose h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #cbd5e1; }
-        .prose p { margin-bottom: 0.75rem; line-height: 1.7; color: #cbd5e1; }
-        .prose ul, .prose ol { margin-bottom: 0.75rem; padding-left: 1.5rem; color: #cbd5e1; }
-        .prose li { margin-bottom: 0.25rem; line-height: 1.6; }
-        .prose ul { list-style-type: disc; }
-        .prose ol { list-style-type: decimal; }
-        .prose strong { color: #f1f5f9; font-weight: 600; }
-        .prose em { color: #94a3b8; }
-        .prose blockquote { border-left: 3px solid #6366f1; padding: 0.5rem 1rem; margin: 1rem 0; background: rgba(99,102,241,0.1); border-radius: 0 0.375rem 0.375rem 0; color: #a5b4fc; }
-        .prose code { background: #1e293b; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.875rem; color: #a5b4fc; }
-        .prose pre { background: #0f172a; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 1rem 0; border: 1px solid #1e293b; }
-        .prose pre code { background: none; padding: 0; color: #e2e8f0; }
-        .prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-        .prose th { background: #1e293b; padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; color: #e2e8f0; border: 1px solid #334155; }
-        .prose td { padding: 0.5rem 0.75rem; border: 1px solid #334155; color: #cbd5e1; }
-        .prose tr:nth-child(even) td { background: rgba(30,41,59,0.5); }
-        .prose hr { border-color: #334155; margin: 1.5rem 0; }
-        .prose a { color: #818cf8; text-decoration: underline; }
-        .htmx-indicator { display: none; }
-        .htmx-request .htmx-indicator { display: block; }
-        .htmx-request .hide-on-request { display: none; }
-        @keyframes pulse-slow { 0%,100%{opacity:1} 50%{opacity:.5} }
-        .animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner { animation: spin 1s linear infinite; }
-        .toast { animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+        :root { --ground:#fff; --surface:#f4f1e8; --ink:#000; --muted:#666; --hairline:#ccc; --link:#00e; --visited:#551a8b; --space:8px; }
+        html[data-theme="dark"] { --ground:#171717; --surface:#262626; --ink:#f5f5f5; --muted:#a3a3a3; --hairline:#525252; --link:#7db7ff; --visited:#c6a0f6; }
+        html,body { transition:background-color .15s linear,color .15s linear; }
+        * { box-sizing:border-box; }
+        html { background:var(--ground); color:var(--ink); }
+        body { margin:0; background:var(--ground); color:var(--ink); font-family:Georgia,"Times New Roman",serif; font-size:16px; line-height:1.45; }
+        button,input,select,textarea { font:inherit; color:var(--ink); }
+        button { cursor:pointer; }
+        input,select,textarea { background-color:var(--ground); border-color:var(--ink); }
+        input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
+        select option { background:var(--ground); color:var(--ink); }
+        html[data-theme="dark"] input[type="file"] { color:var(--ink); }
+        html[data-theme="dark"] input[type="file"]::file-selector-button { background:var(--surface); color:var(--ink); border:1px solid var(--hairline); padding:6px 9px; margin-right:8px; }
+        html[data-theme="dark"] .selected-model-input, html[data-theme="dark"] #model-select, html[data-theme="dark"] #url-input, html[data-theme="dark"] #file-input { color:var(--ink) !important; background:var(--ground) !important; }
+        html[data-theme="dark"] #url-btn, html[data-theme="dark"] #upload-btn { background:var(--ink) !important; color:var(--ground) !important; border-color:var(--ink) !important; }
+        html[data-theme="dark"] #upload-btn:disabled { opacity:.7 !important; color:var(--muted) !important; }
+        a { color:var(--link); text-decoration:underline; }
+        a:visited { color:var(--visited); }
+        :focus-visible { outline:2px solid var(--link); outline-offset:2px; }
+        .site-header { border-bottom:1px solid var(--ink); }
+        .header-inner { width:100%; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
+        .wordmark { color:var(--ink); font-weight:bold; text-decoration:none; letter-spacing:.02em; }
+        .site-main { width:100%; padding:24px 16px 32px; }
+        .site-footer { border-top:1px solid var(--hairline); padding:12px 16px; color:var(--muted); font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+        .prose { max-width:72ch; color:var(--ink); }
+        .prose h1,.prose h2,.prose h3 { color:var(--ink); font-weight:bold; line-height:1.15; }
+        .prose h1 { font-size:28px; margin:0 0 16px; }
+        .prose h2 { font-size:21px; margin:24px 0 8px; border-top:1px solid var(--hairline); padding-top:8px; }
+        .prose h3 { font-size:18px; margin:16px 0 8px; }
+        .prose p { margin:0 0 12px; }
+        .prose ul,.prose ol { margin:0 0 12px; padding-left:24px; }
+        .prose li { margin-bottom:4px; }
+        .prose blockquote { margin:16px 0; padding:8px 16px; border-left:3px solid var(--ink); background:var(--surface); }
+        .prose code { background:var(--surface); padding:1px 4px; }
+        .prose pre { overflow:auto; border:1px solid var(--hairline); padding:12px; background:var(--surface); }
+        .prose table { border-collapse:collapse; width:100%; margin:16px 0; }
+        .prose th,.prose td { border:1px solid var(--hairline); padding:6px 8px; text-align:left; }
+        .prose th { background:var(--surface); }
+        .prose img { max-width:100%; height:auto; }
+        .muted { color:var(--muted); }
+        .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+        @media (max-width:640px) { .site-main { padding:16px 10px 24px; } .header-inner { padding:10px; } }
+        @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.001ms!important; transition-duration:.001ms!important; scroll-behavior:auto!important; } }
     </style>
 </head>
-<body class="bg-dark-950 text-dark-200 min-h-screen">
-    <nav class="border-b border-dark-800 bg-dark-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div class="w-full px-3 sm:px-4 py-3 flex items-center justify-between">
-            <a href="/" class="flex items-center gap-2 text-lg font-bold text-white">
-                <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                AI Summarizer
-            </a>
-            <span class="text-xs text-dark-500 hidden sm:inline">Powered by Ollama</span>
-        </div>
-    </nav>
-    <main class="w-full px-0 py-4 sm:py-6">
-        {% block content %}{% endblock %}
-    </main>
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
-    <script>
-    function showToast(msg, type='success') {
-        const c = document.getElementById('toast-container');
-        const t = document.createElement('div');
-        const colors = {success:'bg-green-600',error:'bg-red-600',info:'bg-indigo-600'};
-        t.className = `toast px-4 py-2 rounded-lg text-white text-sm shadow-lg ${colors[type]||colors.info}`;
-        t.textContent = msg;
-        c.appendChild(t);
-        setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, 3000);
-    }
-    function copyText(text, label) {
-        navigator.clipboard.writeText(text).then(() => showToast(label + ' copied!')).catch(() => showToast('Copy failed', 'error'));
-    }
-    </script>
-    {% block scripts %}{% endblock %}
+<body>
+<header class="site-header"><div class="header-inner"><a href="/" class="wordmark" style="display:inline-flex;align-items:center;gap:8px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.25 1.75h7.2L14.75 6v10.25H3.25z"/><path d="M10.25 1.75V6h4.5M5.75 9h6.5M5.75 12h6.5"/></svg><span>SUMMARIZER</span></a><div style="display:flex;align-items:center;gap:16px"><span class="muted" style="font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">READ · PROCESS · REVISIT</span><button type="button" id="theme-toggle" aria-label="Toggle dark mode" style="border:1px solid var(--ink);background:var(--ground);padding:5px 9px;font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">Dark</button></div></div></header>
+<main class="site-main">{% block content %}{% endblock %}</main>
+<footer class="site-footer">A quiet workspace for turning sources into readable notes. <a href="/">New source</a></footer>
+<div id="toast-container" aria-live="polite" style="position:fixed;bottom:16px;right:16px;z-index:50"></div>
+<script>
+const themeToggle = document.getElementById('theme-toggle');
+function updateThemeToggle() { const dark = document.documentElement.dataset.theme === 'dark'; themeToggle.textContent = dark ? 'Light' : 'Dark'; themeToggle.setAttribute('aria-pressed', String(dark)); }
+themeToggle.addEventListener('click', () => { const dark = document.documentElement.dataset.theme !== 'dark'; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('summarizer-theme', dark ? 'dark' : 'light'); updateThemeToggle(); });
+updateThemeToggle();
+function showToast(msg) { const c=document.getElementById('toast-container'); const t=document.createElement('div'); t.textContent=msg; t.style.cssText='background:#000;color:#fff;border:1px solid #000;padding:8px 12px;margin-top:8px;font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'; c.appendChild(t); setTimeout(()=>t.remove(),3000); }
+function copyText(text,label) { navigator.clipboard.writeText(text).then(()=>showToast(label+' copied')).catch(()=>showToast('Copy failed')); }
+</script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

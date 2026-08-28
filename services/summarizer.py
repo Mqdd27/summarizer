@@ -148,6 +148,8 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
                 logger.info(f"AI request attempt {attempt + 1}, model={model}, endpoint={endpoint}")
                 resp = await client.post(endpoint, json=payload, headers=headers)
                 duration = time.time() - start
+                if resp.is_error:
+                    logger.error("AI provider error status=%s body=%s", resp.status_code, resp.text[:1000])
                 resp.raise_for_status()
                 
                 # Parse response
@@ -316,7 +318,7 @@ async def process_url(url: str) -> dict[str, Any]:
 
 
 def relevant_source_text(text: str, question: str) -> str:
-    chunks = chunk_text(text, chunk_size=1800, overlap=100)
+    chunks = chunk_text(text, chunk_size=700, overlap=60)
     if len(chunks) <= 4:
         return "\n\n---\n\n".join(chunks)
     terms = set(re.findall(r"[\w-]{3,}", question.lower()))
@@ -324,7 +326,7 @@ def relevant_source_text(text: str, question: str) -> str:
         enumerate(chunks),
         key=lambda item: sum(item[1].lower().count(term) for term in terms),
         reverse=True,
-    )[:4]
+    )[:3]
     return "\n\n---\n\n".join(chunk for _, chunk in sorted(ranked))
 
 

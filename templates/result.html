@@ -1,269 +1,86 @@
 {% if error %}
-<div class="bg-red-900/30 border border-red-800 rounded-xl p-6">
-    <div class="flex items-start gap-3">
-        <svg class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <div>
-            <h3 class="text-red-400 font-semibold mb-1">Error</h3>
-            <p class="text-red-300">{{ error }}</p>
-        </div>
-    </div>
-</div>
+<section class="result-error" role="alert"><strong>Unable to process source.</strong><p>{{ error }}</p></section>
 {% elif summary_html %}
-<div class="space-y-4">
-    <!-- Metadata -->
-    <div class="bg-dark-900 border border-dark-800 rounded-xl p-5">
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-            <span class="px-2.5 py-1 rounded-full text-xs font-medium
-                {% if source_type == 'URL' %}bg-indigo-900/50 text-indigo-300 border border-indigo-800
-                {% elif source_type == 'PDF' %}bg-emerald-900/50 text-emerald-300 border border-emerald-800
-                {% else %}bg-amber-900/50 text-amber-300 border border-amber-800{% endif %}">
-                {{ source_type }}
-            </span>
-            {% if cached %}<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-900/50 text-purple-300 border border-purple-800">Cached</span>{% endif %}
-            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-dark-800 text-dark-300 border border-dark-700">{{ model_used }}</span>
+<div class="result-shell">
+    <header class="result-header">
+        <div>
+            <p class="eyebrow">PROCESSED SOURCE</p>
+            <h1 class="result-title">{{ source_title or source_name }}</h1>
+            <p class="result-source">{{ source_name }}</p>
         </div>
-
-        {% if source_title %}<h2 class="text-lg font-semibold text-white mb-3">{{ source_title }}</h2>{% endif %}
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Processing Time</p>
-                <p class="text-white font-medium">{{ processing_time }}</p>
-            </div>
-            {% if original_words %}
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Original</p>
-                <p class="text-white font-medium">{{ original_words }} words</p>
-            </div>
-            {% endif %}
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Summary</p>
-                <p class="text-white font-medium">{{ summary_words }} words</p>
-            </div>
-            {% if compression_ratio and compression_ratio != 'N/A' %}
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Compressed</p>
-                <p class="text-white font-medium">{{ compression_ratio }}</p>
-            </div>
-            {% endif %}
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Reading Time</p>
-                <p class="text-white font-medium">{{ reading_time }}</p>
-            </div>
-            {% if chunk_count and chunk_count > 1 %}
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Chunks</p>
-                <p class="text-white font-medium">{{ chunk_count }}</p>
-            </div>
-            {% endif %}
-            {% if page_count %}
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Pages</p>
-                <p class="text-white font-medium">{{ page_count }}</p>
-            </div>
-            {% endif %}
-            {% if image_size %}
-            <div class="bg-dark-800/50 rounded-lg p-3">
-                <p class="text-dark-500 text-xs mb-1">Image Size</p>
-                <p class="text-white font-medium">{{ image_size }}</p>
-            </div>
-            {% endif %}
+        <div class="result-facts" aria-label="Summary metadata">
+            <span><b>TYPE</b>{{ source_type }}</span>
+            <span><b>MODEL</b>{{ model_used }}</span>
+            <span><b>TIME</b>{{ processing_time }}</span>
+            {% if original_words %}<span><b>WORDS</b>{{ original_words }} → {{ summary_words }}</span>{% endif %}
         </div>
-    </div>
+    </header>
 
-    <div class="sticky top-14 z-40 -mx-1 rounded-xl border border-dark-800 bg-dark-950/95 p-1.5 shadow-xl backdrop-blur lg:hidden" role="tablist" aria-label="Mobile result navigation">
-        <div class="grid grid-cols-3 gap-1">
-            <button type="button" id="mobile-source-tab" role="tab" aria-selected="false" onclick="showMobilePanel('source')" class="mobile-result-tab rounded-lg px-2 py-2.5 text-xs font-medium text-dark-400">Source</button>
-            <button type="button" id="mobile-summary-tab" role="tab" aria-selected="true" onclick="showMobilePanel('summary')" class="mobile-result-tab rounded-lg bg-indigo-600 px-2 py-2.5 text-xs font-medium text-white">Summary</button>
-            <button type="button" id="mobile-chat-tab" role="tab" aria-selected="false" onclick="showMobilePanel('chat')" class="mobile-result-tab rounded-lg px-2 py-2.5 text-xs font-medium text-dark-400">Chat</button>
-        </div>
-    </div>
+    <nav class="mobile-result-nav" role="tablist" aria-label="Result sections">
+        <button id="mobile-source-tab" role="tab" aria-selected="false" onclick="showMobilePanel('source')">Source</button>
+        <button id="mobile-summary-tab" role="tab" aria-selected="true" onclick="showMobilePanel('summary')">Summary</button>
+        <button id="mobile-chat-tab" role="tab" aria-selected="false" onclick="showMobilePanel('chat')">Chat</button>
+    </nav>
 
-    <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-        <section id="workspace-section" class="min-w-0 lg:block overflow-hidden rounded-2xl border border-dark-800 bg-dark-900 shadow-xl">
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-dark-800 px-4 py-3">
-                <div class="hidden rounded-xl bg-dark-950 p-1 lg:flex" role="tablist" aria-label="Document workspace">
-                    <button type="button" id="source-tab" role="tab" aria-selected="false" aria-controls="source-panel" onclick="showWorkspaceTab('source')" class="workspace-tab rounded-lg px-4 py-2 text-sm font-medium text-dark-400 transition-colors">Source</button>
-                    <button type="button" id="summary-tab" role="tab" aria-selected="true" aria-controls="summary-panel" onclick="showWorkspaceTab('summary')" class="workspace-tab rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors">Summary</button>
-                </div>
-                <div class="flex max-w-full gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
-                    <button onclick="copyText(document.getElementById('summary-text').innerText, 'Summary')" class="rounded-lg bg-dark-800 px-3 py-2 text-xs text-dark-300 hover:bg-dark-700 hover:text-white">Copy</button>
-                    <button onclick="copyText(summaryMd, 'Markdown')" class="rounded-lg bg-dark-800 px-3 py-2 text-xs text-dark-300 hover:bg-dark-700 hover:text-white">Markdown</button>
-                    <button onclick="downloadFile(summaryMd, 'summary.md', 'text/markdown')" class="rounded-lg bg-dark-800 px-3 py-2 text-xs text-dark-300 hover:bg-dark-700 hover:text-white">Download</button>
-                    <button onclick="window.print()" class="rounded-lg bg-dark-800 px-3 py-2 text-xs text-dark-300 hover:bg-dark-700 hover:text-white">Print</button>
-                </div>
+    <div class="result-grid">
+        <section id="workspace-section" class="workspace">
+            <nav class="workspace-tabs" role="tablist" aria-label="Document view">
+                <button id="source-tab" role="tab" aria-selected="false" aria-controls="source-panel" onclick="showWorkspaceTab('source')">Source</button>
+                <button id="summary-tab" role="tab" aria-selected="true" aria-controls="summary-panel" onclick="showWorkspaceTab('summary')">Summary</button>
+            </nav>
+            <div class="workspace-actions">
+                <button onclick="copyText(summaryMd,'Summary')">Copy</button>
+                <button onclick="copyText(summaryMd,'Markdown')">Copy Markdown</button>
+                <button onclick="downloadFile(summaryMd,'summary.md','text/markdown')">Download</button>
+                <button onclick="window.print()">Print</button>
             </div>
-
-            <div id="source-panel" role="tabpanel" aria-labelledby="source-tab" class="hidden min-h-[55vh] overflow-auto p-4 sm:p-5 lg:max-h-[70vh] lg:min-h-[520px]">
+            <div id="source-panel" role="tabpanel" aria-labelledby="source-tab" class="source-panel" hidden>
                 {% if source_kind == 'image' %}
-                <div class="flex min-h-[480px] items-center justify-center rounded-xl bg-dark-950 p-4">
-                    <img src="{{ source_url }}" alt="Uploaded source" class="max-h-[64vh] max-w-full rounded-lg object-contain shadow-2xl">
-                </div>
+                <figure class="source-image"><img src="{{ source_url }}" alt="Uploaded source image"></figure>
                 {% else %}
-                <div id="source-content" data-source-url="{{ source_url }}">
-                    <div class="flex min-h-[480px] items-center justify-center text-sm text-dark-500">Select Source to load the original extracted text.</div>
-                </div>
+                <div id="source-content" data-source-url="{{ source_url }}"><p class="muted">Select Source to load the original extracted text.</p></div>
                 {% endif %}
             </div>
-
-            <div id="summary-panel" role="tabpanel" aria-labelledby="summary-tab" class="min-h-[55vh] overflow-auto p-4 sm:p-6 lg:max-h-[70vh] lg:min-h-[520px]">
-                <div id="summary-text">
-                    <div class="prose" id="summary-content">{{ summary_html | safe }}</div>
-                </div>
-            </div>
+            <article id="summary-panel" role="tabpanel" aria-labelledby="summary-tab" class="summary-panel">
+                <div id="summary-text" class="prose"><div id="summary-content">{{ summary_html | safe }}</div></div>
+            </article>
         </section>
 
-        <aside id="chat-aside" class="hidden lg:sticky lg:top-20 lg:block">
-            <div class="flex min-h-[68vh] max-h-[78vh] flex-col rounded-2xl border border-dark-800 bg-dark-900 shadow-xl lg:min-h-[620px]" id="chat-section">
-                <div class="flex items-center gap-3 border-b border-dark-800 px-5 py-4">
-                    <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-white">Chat with source</h3>
-                        <p class="text-xs text-dark-500">Uses the original {{ source_type | lower }} content</p>
-                    </div>
-                </div>
-
-                <div id="chat-messages" class="flex-1 space-y-4 overflow-y-auto px-4 py-5">
-                    <div id="chat-placeholder" class="rounded-xl border border-dashed border-dark-700 bg-dark-950/60 p-4 text-center text-xs leading-5 text-dark-500">Ask for details, facts, explanations, or anything omitted from the summary.</div>
-                </div>
-
-                <div id="chat-loading-indicator" class="mx-4 mb-3 hidden items-center justify-between rounded-xl border border-dark-700 bg-dark-800/80 px-4 py-2.5">
-                    <div class="flex items-center gap-2.5 text-xs font-medium text-indigo-400">
-                        <svg class="spinner h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                        <span>Reading the source...</span>
-                    </div>
-                    <button type="button" onclick="stopChat()" class="rounded-lg border border-red-700/60 bg-red-900/60 px-2.5 py-1 text-xs font-medium text-red-300 hover:bg-red-800">Stop</button>
-                </div>
-
-                <form id="chat-form" hx-post="/api/chat-document" hx-target="#chat-messages" hx-swap="beforeend" class="border-t border-dark-800 p-4" hx-on::before-request="startChatLoading()" hx-on::after-request="finishChatLoading()">
-                    <input type="hidden" name="context_id" value="{{ context_id }}">
-                    <input type="hidden" name="model" value="{{ model_used }}">
-                    <input type="hidden" name="research" id="research-value" value="false">
-
-                    <div class="flex items-center justify-between mb-3 px-1 text-xs">
-                        <span class="text-dark-400 font-medium flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                            Deep Research (Web Search)
-                        </span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="research-toggle" class="sr-only peer" onchange="toggleResearchState()">
-                            <div class="w-7 h-4 bg-dark-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-dark-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-end gap-2 rounded-xl border border-dark-700 bg-dark-950 p-2 focus-within:border-indigo-500">
-                        <textarea name="question" id="chat-input" rows="2" placeholder="Ask about the original source..." class="max-h-32 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-white placeholder-dark-500 focus:outline-none" required></textarea>
-                        <button type="submit" id="chat-btn" class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">Send</button>
-                    </div>
+        <aside id="chat-aside" class="chat-aside">
+            <div id="chat-section" class="chat-panel">
+                <header class="chat-header"><div><h2>Chat with source</h2><p>Ask beyond the summary.</p></div><span>Q&amp;A</span></header>
+                <div id="chat-messages" class="chat-messages"><p id="chat-placeholder" class="chat-empty">Ask about facts, details, or context in the original source.</p></div>
+                <div id="chat-loading-indicator" class="chat-loading" hidden><span>Reading source...</span><button type="button" onclick="stopChat()">Stop</button></div>
+                <form id="chat-form" hx-post="/api/chat-document" hx-target="#chat-messages" hx-swap="beforeend" hx-on::before-request="startChatLoading()" hx-on::after-request="finishChatLoading()" class="chat-form">
+                    <input type="hidden" name="context_id" value="{{ context_id }}"><input type="hidden" name="model" value="{{ model_used }}">
+                    <label class="research-toggle"><input type="checkbox" name="research" value="true"> Deep research</label>
+                    <div class="chat-input-row"><textarea name="question" id="chat-input" rows="2" placeholder="Ask a question..." required></textarea><button id="chat-btn" type="submit">Send</button></div>
                 </form>
             </div>
         </aside>
     </div>
 </div>
-
+<style>
+.result-shell{width:100%;color:var(--ink)}.result-header{border-top:1px solid var(--ink);border-bottom:1px solid var(--hairline);padding:16px 0;display:flex;justify-content:space-between;gap:32px}.eyebrow{font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--muted);margin:0 0 6px}.result-title{font-size:clamp(24px,3vw,38px);line-height:1.08;margin:0;max-width:32ch}.result-source{color:var(--muted);font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:8px 0 0;overflow-wrap:anywhere}.result-facts{display:flex;align-items:start;flex-wrap:wrap;justify-content:end;gap:16px;font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--muted)}.result-facts span{display:grid;gap:3px;white-space:nowrap}.result-facts b{font-size:10px;color:var(--ink)}.result-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;margin-top:24px}.workspace{border:1px solid var(--hairline);min-width:0}.workspace-tabs{display:flex;border-bottom:1px solid var(--hairline)}.workspace-tabs button,.mobile-result-nav button{border:0;background:var(--ground);padding:10px 16px;text-decoration:underline}.workspace-tabs button[aria-selected=true],.mobile-result-nav button[aria-selected=true]{background:var(--ink);color:var(--ground);text-decoration:none}.workspace-actions{border-bottom:1px solid var(--hairline);padding:8px;display:flex;gap:8px;overflow:auto}.workspace-actions button{border:1px solid var(--hairline);background:var(--ground);padding:6px 9px;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap}.source-panel,.summary-panel{padding:24px;min-height:560px;max-height:72vh;overflow:auto}.source-panel[hidden],.mobile-result-nav{display:none}.source-image{margin:0;background:var(--surface);padding:16px;text-align:center}.source-image img{max-width:100%;max-height:60vh}.summary-panel .prose{max-width:72ch}.chat-aside{min-width:0}.chat-panel{border-top:1px solid var(--ink);border-bottom:1px solid var(--hairline);min-height:620px;max-height:78vh;display:flex;flex-direction:column}.chat-header{border-bottom:1px solid var(--hairline);padding:16px;display:flex;justify-content:space-between;gap:12px}.chat-header h2{font-size:20px;margin:0}.chat-header p,.chat-header span{font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--muted);margin:4px 0 0}.chat-messages{padding:16px;overflow:auto;flex:1}.chat-empty{color:var(--muted);font-size:14px;border:1px dashed var(--hairline);padding:12px}.chat-loading{margin:0 16px 12px;border-top:1px solid var(--hairline);padding:10px 0;display:flex;justify-content:space-between;font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--muted)}.chat-loading[hidden]{display:none}.chat-loading button,.chat-form button{border:1px solid var(--ink);background:var(--ink);color:var(--ground);padding:8px 12px}.chat-form{border-top:1px solid var(--hairline);padding:12px}.research-toggle{display:flex;gap:6px;align-items:center;color:var(--muted);font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin-bottom:8px}.chat-input-row{display:flex;gap:8px}.chat-input-row textarea{min-width:0;resize:vertical;flex:1;border:1px solid var(--ink);padding:8px;background:var(--ground);color:var(--ink)}@media(max-width:760px){.site-main{padding:16px 10px}.result-header{display:block}.result-facts{justify-content:start;margin-top:16px;gap:10px 16px}.mobile-result-nav{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ink);margin-top:16px}.mobile-result-nav button{padding:10px 4px}.result-grid{display:block;margin-top:16px}.workspace-tabs{display:none}.chat-aside{display:none}.chat-panel{min-height:70vh;max-height:none}.workspace{display:block}.workspace:has(#source-panel:not([hidden])){}.source-panel,.summary-panel{min-height:55vh;max-height:none;padding:16px}.chat-input-row{align-items:stretch}.chat-form button{min-width:58px}}
+@media print{.chat-aside,.workspace-tabs,.workspace-actions,.mobile-result-nav{display:none}.workspace{border:0}.source-panel{display:none!important}.summary-panel{max-height:none;padding:0}}
+html[data-theme="dark"] .result-error,html[data-theme="dark"] .workspace,html[data-theme="dark"] .chat-panel{background:var(--ground);color:var(--ink)}
+html[data-theme="dark"] .workspace-actions button,html[data-theme="dark"] .workspace-tabs button,html[data-theme="dark"] .mobile-result-nav button{background:var(--ground);color:var(--ink);border-color:var(--hairline)}
+html[data-theme="dark"] .workspace-tabs button[aria-selected="true"],html[data-theme="dark"] .mobile-result-nav button[aria-selected="true"]{background:var(--ink);color:var(--ground)}
+html[data-theme="dark"] .source-content,html[data-theme="dark"] #source-content,html[data-theme="dark"] .chat-messages,html[data-theme="dark"] .chat-empty,html[data-theme="dark"] .chat-header p,html[data-theme="dark"] .result-source{color:var(--muted)}
+html[data-theme="dark"] .chat-input-row textarea{background:var(--ground);color:var(--ink);border-color:var(--hairline)}
+html[data-theme="dark"] .source-image{background:var(--surface)}
+.chat-messages .bg-indigo-600{background:var(--ink);color:var(--ground)}
+.chat-messages .bg-dark-800{background:var(--surface);border:1px solid var(--hairline);color:var(--ink)}
+.chat-messages .text-dark-200,.chat-messages .text-dark-300{color:var(--ink)}
+.chat-messages .text-indigo-400,.chat-messages .text-indigo-300{color:var(--link)}
+</style>
 <script>
-const summaryMd = {{ summary_md | tojson }};
-function downloadFile(content, filename, type) {
-    const blob = new Blob([content], {type});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
-    showToast(filename + ' downloaded!');
-}
-
-let lastQuestion = '';
-let sourceLoaded = false;
-
-function toggleResearchState() {
-    const isChecked = document.getElementById('research-toggle').checked;
-    document.getElementById('research-value').value = String(isChecked);
-}
-
-function setMobileTabState(active) {
-    ['source', 'summary', 'chat'].forEach(name => {
-        const button = document.getElementById(`mobile-${name}-tab`);
-        const selected = name === active;
-        button.setAttribute('aria-selected', String(selected));
-        button.className = `mobile-result-tab rounded-lg px-2 py-2.5 text-xs font-medium ${selected ? 'bg-indigo-600 text-white' : 'text-dark-400'}`;
-    });
-}
-
-function showMobilePanel(panel) {
-    const workspace = document.getElementById('workspace-section');
-    const chat = document.getElementById('chat-aside');
-    const chatActive = panel === 'chat';
-    workspace.classList.toggle('hidden', chatActive);
-    chat.classList.toggle('hidden', !chatActive);
-    if (!chatActive) showWorkspaceTab(panel);
-    setMobileTabState(panel);
-    document.getElementById(chatActive ? 'chat-section' : 'workspace-section').scrollIntoView({behavior: 'smooth', block: 'start'});
-    if (chatActive) document.getElementById('chat-input').focus({preventScroll: true});
-}
-
-function showWorkspaceTab(tab) {
-    const sourcePanel = document.getElementById('source-panel');
-    const summaryPanel = document.getElementById('summary-panel');
-    const sourceTab = document.getElementById('source-tab');
-    const summaryTab = document.getElementById('summary-tab');
-    const sourceActive = tab === 'source';
-    sourcePanel.classList.toggle('hidden', !sourceActive);
-    summaryPanel.classList.toggle('hidden', sourceActive);
-    sourceTab.setAttribute('aria-selected', String(sourceActive));
-    summaryTab.setAttribute('aria-selected', String(!sourceActive));
-    sourceTab.className = `workspace-tab rounded-lg px-4 py-2 text-sm font-medium transition-colors ${sourceActive ? 'bg-indigo-600 text-white' : 'text-dark-400'}`;
-    summaryTab.className = `workspace-tab rounded-lg px-4 py-2 text-sm font-medium transition-colors ${sourceActive ? 'text-dark-400' : 'bg-indigo-600 text-white'}`;
-    const sourceContent = document.getElementById('source-content');
-    if (sourceActive && sourceContent && !sourceLoaded) {
-        sourceLoaded = true;
-        htmx.ajax('GET', sourceContent.dataset.sourceUrl, {target: '#source-content', swap: 'innerHTML'});
-    }
-}
-
-function startChatLoading() {
-    const ph = document.getElementById('chat-placeholder');
-    if (ph) ph.remove();
-
-    lastQuestion = document.getElementById('chat-input').value;
-    document.getElementById('chat-btn').disabled = true;
-    document.getElementById('chat-btn').classList.add('opacity-50', 'cursor-not-allowed');
-    document.getElementById('chat-input').disabled = true;
-    document.getElementById('chat-loading-indicator').classList.remove('hidden');
-
-    const c = document.getElementById('chat-messages');
-    c.scrollTop = c.scrollHeight;
-}
-
-function finishChatLoading() {
-    document.getElementById('chat-input').value = '';
-    document.getElementById('chat-input').disabled = false;
-    document.getElementById('chat-btn').disabled = false;
-    document.getElementById('chat-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-    document.getElementById('chat-loading-indicator').classList.add('hidden');
-    document.getElementById('chat-input').focus();
-
-    const c = document.getElementById('chat-messages');
-    c.scrollTop = c.scrollHeight;
-}
-
-function stopChat() {
-    const formEl = document.getElementById('chat-form');
-    if (formEl && formEl.htmxInternalData && formEl.htmxInternalData.xhr) {
-        formEl.htmxInternalData.xhr.abort();
-    }
-    htmx.trigger(formEl, 'htmx:abort');
-
-    finishChatLoading();
-
-    const c = document.getElementById('chat-messages');
-    const msg = document.createElement('div');
-    msg.className = 'text-xs text-dark-500 italic text-center py-1';
-    msg.textContent = 'Question cancelled by user.';
-    c.appendChild(msg);
-    c.scrollTop = c.scrollHeight;
-    showToast('Question cancelled', 'info');
-}
+const summaryMd={{ summary_md|tojson }};let sourceLoaded=false;
+function showWorkspaceTab(tab){const s=document.getElementById('source-panel'),m=document.getElementById('summary-panel'),st=document.getElementById('source-tab'),mt=document.getElementById('summary-tab'),a=tab==='source';s.hidden=!a;m.hidden=a;st.setAttribute('aria-selected',a);mt.setAttribute('aria-selected',!a);if(a&&!sourceLoaded){sourceLoaded=true;const c=document.getElementById('source-content');if(c)htmx.ajax('GET',c.dataset.sourceUrl,{target:'#source-content',swap:'innerHTML'})}}
+function showMobilePanel(panel){const chat=panel==='chat';document.getElementById('workspace-section').style.display=chat?'none':'';document.getElementById('chat-aside').style.display=chat?'block':'';if(!chat)showWorkspaceTab(panel);['source','summary','chat'].forEach(n=>document.getElementById('mobile-'+n+'-tab').setAttribute('aria-selected',n===panel))}
+function downloadFile(content,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click()}
+function startChatLoading(){const p=document.getElementById('chat-placeholder');if(p)p.remove();document.getElementById('chat-loading-indicator').hidden=false;document.getElementById('chat-btn').disabled=true}
+function finishChatLoading(){document.getElementById('chat-loading-indicator').hidden=true;document.getElementById('chat-btn').disabled=false;document.getElementById('chat-input').value='';document.getElementById('chat-input').focus()}
+function stopChat(){const f=document.getElementById('chat-form');htmx.trigger(f,'htmx:abort');finishChatLoading()}
 </script>
 {% endif %}
