@@ -7,6 +7,16 @@
         <p class="text-dark-400 text-lg">Summarize articles, PDFs, and images with AI</p>
     </div>
 
+    <div class="mb-6 bg-dark-900 border border-dark-800 rounded-xl p-5">
+        <label for="model-select" class="block text-sm font-medium text-white mb-2">9router Model</label>
+        <select id="model-select" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            {% for model in models %}
+            <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
+            {% endfor %}
+        </select>
+        <p class="text-xs text-dark-500 mt-2">The selected model is used for summaries and follow-up chat.</p>
+    </div>
+
     <div class="space-y-6">
         <!-- URL Form -->
         <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
@@ -15,6 +25,7 @@
                 <h2 class="text-lg font-semibold text-white">Summarize URL</h2>
             </div>
             <form id="url-form" hx-post="/api/summarize-url" hx-target="#result-area" hx-swap="innerHTML">
+                <input type="hidden" name="model" class="selected-model-input">
                 <div class="flex gap-2">
                     <input type="url" name="url" id="url-input" placeholder="https://example.com/article"
                         class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-4 py-2.5 text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
@@ -32,6 +43,7 @@
                 <h2 class="text-lg font-semibold text-white">Upload PDF or Image</h2>
             </div>
             <form id="file-form" hx-post="/upload" hx-target="#result-area" hx-encoding="multipart/form-data" hx-swap="innerHTML">
+                <input type="hidden" name="model" class="selected-model-input">
                 <div class="border-2 border-dashed border-dark-700 rounded-lg p-6 text-center hover:border-indigo-500/50 transition-colors cursor-pointer" id="drop-zone">
                     <input type="file" name="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" class="hidden" required>
                     <label for="file-input" class="cursor-pointer">
@@ -108,6 +120,15 @@ const dropZone = document.getElementById('drop-zone');
 const loadingCard = document.getElementById('loading-card');
 const resultArea = document.getElementById('result-area');
 const loadingTimer = document.getElementById('loading-timer');
+const modelSelect = document.getElementById('model-select');
+
+function syncSelectedModel() {
+    document.querySelectorAll('.selected-model-input').forEach(input => {
+        input.value = modelSelect.value;
+    });
+}
+modelSelect.addEventListener('change', syncSelectedModel);
+syncSelectedModel();
 
 let timerInterval = null;
 let secondsElapsed = 0;

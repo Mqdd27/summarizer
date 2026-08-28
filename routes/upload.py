@@ -3,7 +3,7 @@ import uuid
 import mimetypes
 from pathlib import Path
 
-from fastapi import APIRouter, Request, UploadFile, File
+from fastapi import APIRouter, Request, UploadFile, File, Form
 from fastapi.templating import Jinja2Templates
 
 import config
@@ -21,7 +21,7 @@ def sanitize_filename(filename: str) -> str:
 
 
 @router.post("/upload")
-async def upload_file(request: Request, file: UploadFile = File(...)):
+async def upload_file(request: Request, file: UploadFile = File(...), model: str = Form(...)):
     if not file.filename:
         return templates.TemplateResponse(
             request=request, name="result.html", context={"error": "No file provided."}
@@ -52,10 +52,14 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(content)
 
-    from services.summarizer import process_file
+    from services.models import validate_model
+    from services.summarizer import process_file, reset_model, set_model
+    selected_model = await validate_model(model)
+    token = set_model(selected_model)
     try:
         result = await process_file(file_path, input_type, file.filename or safe_name)
     finally:
+        reset_model(token)
         if os.path.exists(file_path):
             os.remove(file_path)
 

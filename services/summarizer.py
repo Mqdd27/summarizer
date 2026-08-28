@@ -1,6 +1,7 @@
 import time
 import base64
 import logging
+from contextvars import ContextVar
 from typing import Any
 
 import httpx
@@ -14,6 +15,20 @@ from services.cache import get_cached, set_cached, log_request
 
 logger = logging.getLogger("summarizer")
 logging.basicConfig(level=logging.INFO)
+
+selected_model: ContextVar[str] = ContextVar("selected_model", default=config.OLLAMA_MODEL)
+
+
+def set_model(model: str):
+    return selected_model.set(model)
+
+
+def reset_model(token):
+    selected_model.reset(token)
+
+
+def get_model() -> str:
+    return selected_model.get()
 
 SYSTEM_PROMPT = "You are an expert document summarizer and assistant. Respond directly in clean Markdown format without internal thinking tags. Language rule: Match the language of the source document or the user's question. If the document/question is in Indonesian (Bahasa Indonesia), write your response in Indonesian. If in English, write in English."
 
@@ -53,6 +68,7 @@ Output Markdown directly in English (or Indonesian if the text inside the image 
 
 
 async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str, Any]:
+    model = get_model()
     # Check if using 9router / OpenAI-compatible endpoint
     is_openai_compat = "/v1" in config.OLLAMA_HOST or bool(config.ROUTER_API_KEY)
     
@@ -83,7 +99,7 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
             {"role": "user", "content": content_block}
         ]
         payload = {
-            "model": config.OLLAMA_MODEL,
+            "model": model,
             "messages": messages,
             "max_tokens": config.OLLAMA_NUM_PREDICT,
             "temperature": config.OLLAMA_TEMPERATURE,
@@ -92,7 +108,7 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
         headers = {}
         endpoint = f"{config.OLLAMA_HOST}/api/chat"
         payload = {
-            "model": config.OLLAMA_MODEL,
+            "model": model,
             "messages": [
                 {"role": "user", "content": prompt, "images": images}
             ],
@@ -110,7 +126,7 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
         endpoint = f"{config.OLLAMA_HOST}/api/generate"
         formatted_prompt = f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
         payload = {
-            "model": config.OLLAMA_MODEL,
+            "model": model,
             "prompt": formatted_prompt,
             "raw": True,
             "stream": False,
@@ -128,7 +144,7 @@ async def call_ollama(prompt: str, images: list[str] | None = None) -> dict[str,
         try:
             async with httpx.AsyncClient(timeout=config.OLLAMA_TIMEOUT) as client:
                 start = time.time()
-                logger.info(f"AI request attempt {attempt + 1}, model={config.OLLAMA_MODEL}, endpoint={endpoint}")
+                logger.info(f"AI request attempt {attempt + 1}, model={model}, endpoint={endpoint}")
                 resp = await client.post(endpoint, json=payload, headers=headers)
                 duration = time.time() - start
                 resp.raise_for_status()
@@ -251,7 +267,8 @@ async def hierarchical_summarize(text: str) -> dict[str, Any]:
 
 
 async def process_url(url: str) -> dict[str, Any]:
-    cached = await get_cached(url)
+    model = get_model()
+    cached = await get_cached(url, model)
     if cached:
         return cached
 
@@ -278,16 +295,16 @@ async def process_url(url: str) -> dict[str, Any]:
             "summary_words": summary_words,
             "compression_ratio": f"{(1 - summary_words / max(original_words, 1)) * 100:.0f}%",
             "reading_time": f"{max(1, summary_words // 200)} min",
-            "model_used": config.OLLAMA_MODEL,
+            "model_used": model,
             "chunk_count": result.get("chunk_count", 1),
         }
-        await set_cached(url, output)
-        await log_request("url", url, config.OLLAMA_MODEL, total_time, original_words, summary_words, "success", "", result.get("chunk_count", 1))
+        await set_cached(url, model, output)
+        await log_request("url", url, model, total_time, original_words, summary_words, "success", "", result.get("chunk_count", 1))
         return output
     except Exception as e:
         total_time = time.time() - start
         logger.error(f"URL processing error: {e}")
-        await log_request("url", url, config.OLLAMA_MODEL, total_time, 0, 0, "error", str(e), 0)
+        await log_request("url", url, model, total_time, 0, 0, "error", str(e), 0)
         return {"error": f"Failed to process URL: {e}"}
 
 
@@ -312,6 +329,7 @@ Instructions:
 
 
 async def process_file(file_path: str, input_type: str, original_name: str) -> dict[str, Any]:
+    model = get_model()
     start = time.time()
     try:
         if input_type == "pdf":
@@ -336,11 +354,11 @@ async def process_file(file_path: str, input_type: str, original_name: str) -> d
                 "summary_words": summary_words,
                 "compression_ratio": f"{(1 - summary_words / max(original_words, 1)) * 100:.0f}%",
                 "reading_time": f"{max(1, summary_words // 200)} min",
-                "model_used": config.OLLAMA_MODEL,
+                "model_used": model,
                 "chunk_count": result.get("chunk_count", 1),
                 "page_count": extracted.get("page_count", 0),
             }
-            await log_request("pdf", original_name, config.OLLAMA_MODEL, total_time, original_words, summary_words, "success", "", result.get("chunk_count", 1))
+            await log_request("pdf", original_name, model, total_time, original_words, summary_words, "success", "", result.get("chunk_count", 1))
             return output
 
         elif input_type == "image":
@@ -364,16 +382,16 @@ async def process_file(file_path: str, input_type: str, original_name: str) -> d
                 "summary_words": summary_words,
                 "compression_ratio": "N/A",
                 "reading_time": f"{max(1, summary_words // 200)} min",
-                "model_used": config.OLLAMA_MODEL,
+                "model_used": model,
                 "chunk_count": 1,
                 "image_size": f"{w}x{h}",
             }
-            await log_request("image", original_name, config.OLLAMA_MODEL, total_time, 0, summary_words, "success", "", 1)
+            await log_request("image", original_name, model, total_time, 0, summary_words, "success", "", 1)
             return output
         else:
             return {"error": f"Unsupported input type: {input_type}"}
     except Exception as e:
         total_time = time.time() - start
         logger.error(f"File processing error: {e}")
-        await log_request(input_type, original_name, config.OLLAMA_MODEL, total_time, 0, 0, "error", str(e), 0)
+        await log_request(input_type, original_name, model, total_time, 0, 0, "error", str(e), 0)
         return {"error": f"Failed to process file: {e}"}

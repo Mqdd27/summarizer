@@ -8,7 +8,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 import config
-from services.summarizer import process_url, ask_document
+from services.models import validate_model
+from services.summarizer import ask_document, process_url, reset_model, set_model
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
@@ -56,7 +57,7 @@ def validate_url(url: str) -> str | None:
 
 
 @router.post("/api/summarize-url")
-async def summarize_url(request: Request, url: str = Form(...)):
+async def summarize_url(request: Request, url: str = Form(...), model: str = Form(...)):
     url = url.strip()
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
@@ -67,19 +68,29 @@ async def summarize_url(request: Request, url: str = Form(...)):
             request=request, name="result.html", context={"error": error}
         )
 
-    result = await process_url(url)
+    selected_model = await validate_model(model)
+    token = set_model(selected_model)
+    try:
+        result = await process_url(url)
+    finally:
+        reset_model(token)
     return templates.TemplateResponse(
         request=request, name="result.html", context=result
     )
 
 
 @router.post("/api/chat-document")
-async def chat_document(request: Request, question: str = Form(...), context: str = Form(...)):
+async def chat_document(request: Request, question: str = Form(...), context: str = Form(...), model: str = Form(...)):
     if not question.strip():
         return HTMLResponse("")
 
     try:
-        answer_html = await ask_document(context, question.strip())
+        selected_model = await validate_model(model)
+        token = set_model(selected_model)
+        try:
+            answer_html = await ask_document(context, question.strip())
+        finally:
+            reset_model(token)
         return templates.TemplateResponse(
             request=request,
             name="chat_message.html",

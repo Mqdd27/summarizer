@@ -36,11 +36,11 @@ async def init_db():
         await db.commit()
 
 
-async def get_cached(url: str) -> dict | None:
+async def get_cached(url: str, model: str) -> dict | None:
     async with get_db() as db:
         cursor = await db.execute(
             "SELECT result, created_at FROM cache WHERE url = ? AND model = ?",
-            (url, config.OLLAMA_MODEL),
+            (url, model),
         )
         row = await cursor.fetchone()
         if row:
@@ -55,12 +55,12 @@ async def get_cached(url: str) -> dict | None:
     return None
 
 
-async def set_cached(url: str, result: dict):
+async def set_cached(url: str, model: str, result: dict):
     store = {k: v for k, v in result.items() if k != "cached"}
     async with get_db() as db:
         await db.execute(
             "INSERT OR REPLACE INTO cache (url, model, result, created_at) VALUES (?, ?, ?, ?)",
-            (url, config.OLLAMA_MODEL, json.dumps(store), time.time()),
+            (url, model, json.dumps(store), time.time()),
         )
         await db.commit()
 
