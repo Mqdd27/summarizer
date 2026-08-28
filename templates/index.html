@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
 {% block title %}AI Summarizer - Summarize Anything{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto">
+<div class="w-full px-2 sm:px-4">
+    <div class="max-w-2xl mx-auto">
     <div class="text-center mb-10">
         <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">AI Summarizer</h1>
         <p class="text-dark-400 text-lg">Summarize articles, PDFs, and images with AI</p>
@@ -71,7 +72,7 @@
             </div>
             <div>
                 <h3 class="font-semibold text-white text-base" id="loading-title">AI is analyzing document...</h3>
-                <p class="text-xs text-indigo-400" id="loading-subtitle">Extracting content and feeding to Qwen model</p>
+                <p class="text-xs text-indigo-400" id="loading-subtitle">Preparing selected AI model...</p>
             </div>
             <div class="ml-auto flex items-center gap-3">
                 <span class="text-xs text-dark-500 font-mono" id="loading-timer">0s</span>
@@ -90,7 +91,7 @@
             </div>
             <div class="flex items-center gap-2.5 text-dark-500" id="step-2">
                 <div class="w-2 h-2 rounded-full bg-dark-700"></div>
-                <span>Running neural inference via Ollama...</span>
+                <span id="inference-status">Running AI inference...</span>
             </div>
             <div class="flex items-center gap-2.5 text-dark-500" id="step-3">
                 <div class="w-2 h-2 rounded-full bg-dark-700"></div>
@@ -106,8 +107,9 @@
             <div class="h-3 bg-dark-800 rounded w-2/3"></div>
         </div>
     </div>
+    </div>
 
-    <div id="result-area" class="mt-8"></div>
+    <div id="result-area" class="w-full"></div>
 </div>
 
 <script>
@@ -121,6 +123,14 @@ const loadingCard = document.getElementById('loading-card');
 const resultArea = document.getElementById('result-area');
 const loadingTimer = document.getElementById('loading-timer');
 const modelSelect = document.getElementById('model-select');
+const loadingSubtitle = document.getElementById('loading-subtitle');
+const inferenceStatus = document.getElementById('inference-status');
+
+function selectedProviderLabel() {
+    const model = modelSelect.value;
+    const provider = model.includes('/') ? model.split('/', 1)[0] : model;
+    return `${provider} · ${model}`;
+}
 
 function syncSelectedModel() {
     document.querySelectorAll('.selected-model-input').forEach(input => {
@@ -151,6 +161,9 @@ function setButtonsState(disabled) {
 function startLoading(type) {
     activeFormId = type;
     resultArea.innerHTML = '';
+    const providerLabel = selectedProviderLabel();
+    loadingSubtitle.textContent = `Preparing ${providerLabel}...`;
+    inferenceStatus.textContent = `Running AI inference via ${providerLabel}...`;
     loadingCard.classList.remove('hidden');
     setButtonsState(true);
 

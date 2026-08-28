@@ -1,11 +1,13 @@
 import os
 import socket
 import ipaddress
+import base64
+import html
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 import config
 from services.cache import get_document_context
@@ -80,8 +82,30 @@ async def summarize_url(request: Request, url: str = Form(...), model: str = For
     )
 
 
+@router.get("/api/document-source/{context_id}")
+async def document_source(context_id: str):
+    context = await get_document_context(context_id)
+    headers = {"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"}
+    if not context:
+        return HTMLResponse(
+            '<div class="p-6 text-sm text-red-400">Source expired. Please summarize it again.</div>',
+            status_code=410,
+            headers=headers,
+        )
+    if context["source_type"] == "image":
+        try:
+            return Response(base64.b64decode(context["content"]), media_type="image/jpeg", headers=headers)
+        except ValueError:
+            return Response(status_code=422, headers=headers)
+    escaped = html.escape(context["content"])
+    return HTMLResponse(
+        f'<article class="whitespace-pre-wrap break-words text-sm leading-7 text-dark-300">{escaped}</article>',
+        headers=headers,
+    )
+
+
 @router.post("/api/chat-document")
-async def chat_document(request: Request, question: str = Form(...), context_id: str = Form(...), model: str = Form(...)):
+async def chat_document(request: Request, question: str = Form(...), context_id: str = Form(...), model: str = Form(...), research: str = Form("false")):
     if not question.strip():
         return HTMLResponse("")
 
@@ -92,13 +116,15 @@ async def chat_document(request: Request, question: str = Form(...), context_id:
         selected_model = await validate_model(model)
         token = set_model(selected_model)
         try:
-            answer_html = await ask_document(context, question.strip())
+            answer_html, web_sources = await ask_document(
+                context, question.strip(), research=research == "true"
+            )
         finally:
             reset_model(token)
         return templates.TemplateResponse(
             request=request,
             name="chat_message.html",
-            context={"question": question, "answer_html": answer_html},
+            context={"question": question, "answer_html": answer_html, "web_sources": web_sources},
         )
     except Exception as e:
         error_html = f"<p class='text-red-400'>Error: {e}</p>"

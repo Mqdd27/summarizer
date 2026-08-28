@@ -271,6 +271,8 @@ async def process_url(url: str) -> dict[str, Any]:
     model = get_model()
     cached = await get_cached(url, model)
     if cached and cached.get("context_id"):
+        cached["source_kind"] = "text"
+        cached["source_url"] = f"/api/document-source/{cached['context_id']}"
         return cached
 
     start = time.time()
@@ -288,6 +290,8 @@ async def process_url(url: str) -> dict[str, Any]:
 
         output = {
             "context_id": context_id,
+            "source_kind": "text",
+            "source_url": f"/api/document-source/{context_id}",
             "summary_html": summary_html,
             "summary_md": result["content"],
             "source_type": "URL",
@@ -324,12 +328,30 @@ def relevant_source_text(text: str, question: str) -> str:
     return "\n\n---\n\n".join(chunk for _, chunk in sorted(ranked))
 
 
-async def ask_document(context: dict, question: str) -> str:
-    instructions = """Answer using the original source provided below, not merely its summary.
+async def ask_document(context: dict, question: str, research: bool = False) -> tuple[str, list[dict[str, str]]]:
+    sources: list[dict[str, str]] = []
+    if research:
+        try:
+            from services.web_search import search_web
+            sources = await search_web(question)
+        except Exception as error:
+            logger.warning("Web research unavailable: %s", error)
+
+    if research:
+        instructions = """Answer the user's question using the original source, your general knowledge, and the external web search notes when useful.
+Reason carefully and distinguish claims from the original source versus external information.
+Do not invent citations. Respond in Markdown and match the language of the user's question."""
+        web_context = "\n".join(
+            f"- {item['title']}: {item['snippet']} ({item['url']})" for item in sources
+        ) or "No external web results were available."
+    else:
+        instructions = """Answer using the original source provided below, not merely its summary.
 If the answer is not present in the source, clearly state so.
 Respond in Markdown and match the language of the user's question."""
+        web_context = ""
+
     if context["source_type"] == "image":
-        prompt = f"{instructions}\n\nUser Question: {question}"
+        prompt = f"{instructions}\n\nExternal Web Notes:\n{web_context}\n\nUser Question: {question}"
         result = await call_ollama(prompt, images=[context["content"]])
     else:
         source = relevant_source_text(context["content"], question)
@@ -340,10 +362,13 @@ Original Source:
 {source}
 \"\"\"
 
+External Web Notes:
+{web_context}
+
 User Question: {question}
 """
         result = await call_ollama(prompt)
-    return render_markdown(result["content"])
+    return render_markdown(result["content"]), sources
 
 
 async def process_file(file_path: str, input_type: str, original_name: str) -> dict[str, Any]:
@@ -364,6 +389,8 @@ async def process_file(file_path: str, input_type: str, original_name: str) -> d
             context_id = await set_document_context("text", text, model)
             output = {
                 "context_id": context_id,
+                "source_kind": "text",
+                "source_url": f"/api/document-source/{context_id}",
                 "summary_html": summary_html,
                 "summary_md": result["content"],
                 "source_type": "PDF",
@@ -394,6 +421,8 @@ async def process_file(file_path: str, input_type: str, original_name: str) -> d
             context_id = await set_document_context("image", b64, model)
             output = {
                 "context_id": context_id,
+                "source_kind": "image",
+                "source_url": f"/api/document-source/{context_id}",
                 "summary_html": summary_html,
                 "summary_md": result["content"],
                 "source_type": "Image",
