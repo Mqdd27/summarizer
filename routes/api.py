@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 import config
+from services.cache import get_document_context
 from services.models import validate_model
 from services.summarizer import ask_document, process_url, reset_model, set_model
 
@@ -80,11 +81,14 @@ async def summarize_url(request: Request, url: str = Form(...), model: str = For
 
 
 @router.post("/api/chat-document")
-async def chat_document(request: Request, question: str = Form(...), context: str = Form(...), model: str = Form(...)):
+async def chat_document(request: Request, question: str = Form(...), context_id: str = Form(...), model: str = Form(...)):
     if not question.strip():
         return HTMLResponse("")
 
     try:
+        context = await get_document_context(context_id)
+        if not context:
+            raise ValueError("Source context expired. Please summarize the source again.")
         selected_model = await validate_model(model)
         token = set_model(selected_model)
         try:

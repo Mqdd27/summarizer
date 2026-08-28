@@ -1,6 +1,7 @@
 import time
 import base64
 import logging
+import re
 from contextvars import ContextVar
 from typing import Any
 
@@ -11,7 +12,7 @@ from services.website import extract_from_url
 from services.pdf import extract_from_pdf
 from services.image import extract_from_image
 from services.markdown import render_markdown
-from services.cache import get_cached, set_cached, log_request
+from services.cache import get_cached, set_cached, set_document_context, log_request
 
 logger = logging.getLogger("summarizer")
 logging.basicConfig(level=logging.INFO)
@@ -269,7 +270,7 @@ async def hierarchical_summarize(text: str) -> dict[str, Any]:
 async def process_url(url: str) -> dict[str, Any]:
     model = get_model()
     cached = await get_cached(url, model)
-    if cached:
+    if cached and cached.get("context_id"):
         return cached
 
     start = time.time()
@@ -283,8 +284,10 @@ async def process_url(url: str) -> dict[str, Any]:
         summary_html = render_markdown(result["content"])
         summary_words = count_words(result["content"])
         total_time = time.time() - start
+        context_id = await set_document_context("text", extracted["text"], model)
 
         output = {
+            "context_id": context_id,
             "summary_html": summary_html,
             "summary_md": result["content"],
             "source_type": "URL",
@@ -308,23 +311,38 @@ async def process_url(url: str) -> dict[str, Any]:
         return {"error": f"Failed to process URL: {e}"}
 
 
-async def ask_document(context: str, question: str) -> str:
-    prompt = f"""You are a helpful assistant answering questions about the following document summary.
+def relevant_source_text(text: str, question: str) -> str:
+    chunks = chunk_text(text, chunk_size=1800, overlap=100)
+    if len(chunks) <= 4:
+        return "\n\n---\n\n".join(chunks)
+    terms = set(re.findall(r"[\w-]{3,}", question.lower()))
+    ranked = sorted(
+        enumerate(chunks),
+        key=lambda item: sum(item[1].lower().count(term) for term in terms),
+        reverse=True,
+    )[:4]
+    return "\n\n---\n\n".join(chunk for _, chunk in sorted(ranked))
 
-Document Context:
+
+async def ask_document(context: dict, question: str) -> str:
+    instructions = """Answer using the original source provided below, not merely its summary.
+If the answer is not present in the source, clearly state so.
+Respond in Markdown and match the language of the user's question."""
+    if context["source_type"] == "image":
+        prompt = f"{instructions}\n\nUser Question: {question}"
+        result = await call_ollama(prompt, images=[context["content"]])
+    else:
+        source = relevant_source_text(context["content"], question)
+        prompt = f"""{instructions}
+
+Original Source:
 \"\"\"
-{context}
+{source}
 \"\"\"
 
 User Question: {question}
-
-Instructions:
-- Answer factually and concisely using only information from the document context above.
-- If the document does not contain the answer, clearly state so.
-- Respond in Markdown format.
-- LANGUAGE RULE: Match the language of the User Question. If the user asks in Indonesian (Bahasa Indonesia), answer in natural Indonesian. If the user asks in English, answer in English. Do NOT answer in Vietnamese.
 """
-    result = await call_ollama(prompt)
+        result = await call_ollama(prompt)
     return render_markdown(result["content"])
 
 
@@ -343,7 +361,9 @@ async def process_file(file_path: str, input_type: str, original_name: str) -> d
             summary_html = render_markdown(result["content"])
             summary_words = count_words(result["content"])
             total_time = time.time() - start
+            context_id = await set_document_context("text", text, model)
             output = {
+                "context_id": context_id,
                 "summary_html": summary_html,
                 "summary_md": result["content"],
                 "source_type": "PDF",
@@ -371,7 +391,9 @@ async def process_file(file_path: str, input_type: str, original_name: str) -> d
             total_time = time.time() - start
             w = img_data.get("width", 0)
             h = img_data.get("height", 0)
+            context_id = await set_document_context("image", b64, model)
             output = {
+                "context_id": context_id,
                 "summary_html": summary_html,
                 "summary_md": result["content"],
                 "source_type": "Image",

@@ -1,5 +1,6 @@
 import time
 import json
+import uuid
 import aiosqlite
 import config
 
@@ -33,6 +34,15 @@ async def init_db():
                 chunk_count INTEGER
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS document_context (
+                id TEXT PRIMARY KEY,
+                source_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                model TEXT NOT NULL,
+                created_at REAL NOT NULL
+            )
+        """)
         await db.commit()
 
 
@@ -63,6 +73,36 @@ async def set_cached(url: str, model: str, result: dict):
             (url, model, json.dumps(store), time.time()),
         )
         await db.commit()
+
+
+async def set_document_context(source_type: str, content: str, model: str) -> str:
+    context_id = uuid.uuid4().hex
+    async with get_db() as db:
+        await db.execute(
+            "DELETE FROM document_context WHERE created_at < ?",
+            (time.time() - config.CACHE_TTL_HOURS * 3600,),
+        )
+        await db.execute(
+            "INSERT INTO document_context (id, source_type, content, model, created_at) VALUES (?, ?, ?, ?, ?)",
+            (context_id, source_type, content, model, time.time()),
+        )
+        await db.commit()
+    return context_id
+
+
+async def get_document_context(context_id: str) -> dict | None:
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT source_type, content, model, created_at FROM document_context WHERE id = ?",
+            (context_id,),
+        )
+        row = await cursor.fetchone()
+        if not row or time.time() - row[3] >= config.CACHE_TTL_HOURS * 3600:
+            if row:
+                await db.execute("DELETE FROM document_context WHERE id = ?", (context_id,))
+                await db.commit()
+            return None
+        return {"source_type": row[0], "content": row[1], "model": row[2]}
 
 
 async def log_request(input_type: str, source_name: str, model: str, duration: float,
