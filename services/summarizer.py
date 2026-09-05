@@ -270,6 +270,45 @@ async def hierarchical_summarize(text: str) -> dict[str, Any]:
     }
 
 
+async def process_text(text: str, title: str = "Pasted text") -> dict[str, Any]:
+    model = get_model()
+    start = time.time()
+    try:
+        text = text.strip()
+        if not text:
+            return {"error": "Text is required."}
+        original_words = count_words(text)
+        result = await hierarchical_summarize(text)
+        summary_html = render_markdown(result["content"])
+        summary_words = count_words(result["content"])
+        total_time = time.time() - start
+        context_id = await set_document_context("text", text, model)
+        output = {
+            "context_id": context_id,
+            "source_kind": "text",
+            "source_url": f"/api/document-source/{context_id}",
+            "summary_html": summary_html,
+            "summary_md": result["content"],
+            "source_type": "Text",
+            "source_title": title,
+            "source_name": "Pasted text",
+            "processing_time": f"{total_time:.1f}s",
+            "original_words": original_words,
+            "summary_words": summary_words,
+            "compression_ratio": f"{(1 - summary_words / max(original_words, 1)) * 100:.0f}%",
+            "reading_time": f"{max(1, summary_words // 200)} min",
+            "model_used": model,
+            "chunk_count": result.get("chunk_count", 1),
+        }
+        await log_request("text", title, model, total_time, original_words, summary_words, "success", "", result.get("chunk_count", 1))
+        return output
+    except Exception as e:
+        total_time = time.time() - start
+        logger.error(f"Text processing error: {e}")
+        await log_request("text", title, model, total_time, 0, 0, "error", str(e), 0)
+        return {"error": f"Failed to process text: {e}"}
+
+
 async def process_url(url: str) -> dict[str, Any]:
     model = get_model()
     cached = await get_cached(url, model)

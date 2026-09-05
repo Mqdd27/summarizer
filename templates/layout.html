@@ -24,11 +24,11 @@
         html[data-theme="dark"] input[type="file"] { color:var(--ink); }
         html[data-theme="dark"] input[type="file"]::file-selector-button { background:var(--surface); color:var(--ink); border:1px solid var(--hairline); padding:6px 9px; margin-right:8px; }
         html[data-theme="dark"] .selected-model-input, html[data-theme="dark"] #model-select, html[data-theme="dark"] #url-input, html[data-theme="dark"] #file-input { color:var(--ink) !important; background:var(--ground) !important; }
-        html[data-theme="dark"] #url-btn, html[data-theme="dark"] #upload-btn { background:var(--ink) !important; color:var(--ground) !important; border-color:var(--ink) !important; }
-        html[data-theme="dark"] #upload-btn:disabled { opacity:.7 !important; color:var(--muted) !important; }
         a { color:var(--link); text-decoration:underline; }
         a:visited { color:var(--visited); }
         :focus-visible { outline:2px solid var(--link); outline-offset:2px; }
+        .source-action { border:1px solid var(--ink) !important; padding:10px 16px !important; background:var(--ink) !important; color:var(--ground) !important; cursor:pointer !important; opacity:1 !important; }
+        .source-action:disabled { background:var(--surface) !important; color:var(--muted) !important; border-color:var(--hairline) !important; cursor:not-allowed !important; opacity:1 !important; }
         .site-header { border-bottom:1px solid var(--ink); }
         .header-inner { width:100%; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
         .wordmark { color:var(--ink); font-weight:bold; text-decoration:none; letter-spacing:.02em; }

@@ -17,7 +17,15 @@
         <form id="url-form" hx-post="/api/summarize-url" hx-target="#result-area" hx-swap="innerHTML">
             <input type="hidden" name="model" class="selected-model-input">
             <label for="url-input" style="display:block;font:bold 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-bottom:6px">PASTE A URL</label>
-            <div style="display:flex;gap:8px"><input type="url" name="url" id="url-input" placeholder="https://..." required style="min-width:0;flex:1;border:1px solid var(--ink);padding:10px;background:var(--ground)"><button type="submit" id="url-btn" style="border:1px solid var(--ink);padding:10px 16px;background:var(--ink);color:#fff">Summarize</button></div>
+            <div style="display:flex;gap:8px"><input type="url" name="url" id="url-input" placeholder="https://..." required style="min-width:0;flex:1;border:1px solid var(--ink);padding:10px;background:var(--ground)"><button type="submit" id="url-btn" class="source-action" disabled style="border:1px solid var(--ink);padding:10px 16px;background:var(--surface);color:var(--muted);cursor:not-allowed">Summarize</button></div>
+        </form>
+    </div>
+    <div style="padding:24px 0;border-bottom:1px solid var(--hairline)">
+        <form id="text-form" hx-post="/api/summarize-text" hx-target="#result-area" hx-swap="innerHTML">
+            <input type="hidden" name="model" class="selected-model-input">
+            <label for="text-input" style="display:block;font:bold 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-bottom:6px">PASTE TEXT</label>
+            <textarea name="text" id="text-input" rows="7" placeholder="Paste an article, notes, transcript, or any text…" style="width:100%;resize:vertical;border:1px solid var(--ink);padding:10px;background:var(--ground)"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="text-meta" class="muted" style="font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">0 words</span><button type="submit" id="text-btn" class="source-action" disabled style="border:1px solid var(--ink);padding:10px 16px;background:var(--surface);color:var(--muted);cursor:not-allowed">Summarize text</button></div>
         </form>
     </div>
     <div style="padding:24px 0">
@@ -26,24 +34,29 @@
             <label for="file-input" style="display:block;font:bold 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-bottom:6px">ADD A FILE</label>
             <input type="file" name="file" id="file-input" accept=".pdf,.docx,.odt,.txt,.md,.markdown,.csv,.tsv,.json,.jsonl,.xml,.html,.htm,.rtf,.yaml,.yml,.log,.ini,.cfg,.conf,.toml,.py,.js,.ts,.tsx,.jsx,.css,.sql,.sh,.bash,.zsh,.java,.c,.cpp,.h,.go,.rs,.php,.rb,.swift,.kt,.tex,.jpg,.jpeg,.png,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,text/plain,text/markdown,text/csv,application/json,image/jpeg,image/png,image/webp" required style="width:100%;border:1px solid var(--ink);padding:9px;background:var(--ground)">
             <p id="file-meta" class="muted" style="font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:8px 0"></p>
-            <button type="submit" id="upload-btn" disabled style="margin-top:8px;border:1px solid var(--ink);padding:10px 16px;background:var(--ink);color:#fff;opacity:.45">Summarize file</button>
+            <button type="submit" id="upload-btn" class="source-action" disabled style="margin-top:8px;border:1px solid var(--ink);padding:10px 16px;background:var(--surface);color:var(--muted);cursor:not-allowed">Summarize file</button>
         </form>
     </div>
 </section>
 <div id="loading-card" hidden style="max-width:720px;margin:32px auto;border-top:1px solid var(--ink);border-bottom:1px solid var(--hairline);padding:16px 0;font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"><strong>PROCESSING</strong><span id="loading-subtitle" class="muted"> Preparing source...</span><span id="loading-timer" class="muted" style="float:right">0s</span><button type="button" id="stop-summarize-btn" onclick="stopSummarize()" style="float:right;margin-right:16px;border:0;background:none;text-decoration:underline">Stop</button><div style="clear:both;margin-top:12px;color:var(--muted)"><span id="inference-status">Running AI inference...</span></div></div>
 <div id="result-area"></div>
 <script>
-const fileInput=document.getElementById('file-input'), fileMeta=document.getElementById('file-meta'), uploadBtn=document.getElementById('upload-btn'), urlInput=document.getElementById('url-input'), modelSelect=document.getElementById('model-select'), loadingCard=document.getElementById('loading-card'), resultArea=document.getElementById('result-area'), loadingTimer=document.getElementById('loading-timer'), loadingSubtitle=document.getElementById('loading-subtitle'), inferenceStatus=document.getElementById('inference-status');
+const fileInput=document.getElementById('file-input'), fileMeta=document.getElementById('file-meta'), uploadBtn=document.getElementById('upload-btn'), urlInput=document.getElementById('url-input'), urlBtn=document.getElementById('url-btn'), textInput=document.getElementById('text-input'), textMeta=document.getElementById('text-meta'), textBtn=document.getElementById('text-btn'), modelSelect=document.getElementById('model-select'), loadingCard=document.getElementById('loading-card'), resultArea=document.getElementById('result-area'), loadingTimer=document.getElementById('loading-timer'), loadingSubtitle=document.getElementById('loading-subtitle'), inferenceStatus=document.getElementById('inference-status');
 let timerInterval=null, secondsElapsed=0, activeFormId=null;
 function syncModel(){document.querySelectorAll('.selected-model-input').forEach(i=>i.value=modelSelect.value)}
 function provider(){const m=modelSelect.value;return `${m.includes('/')?m.split('/')[0]:m} · ${m}`}
-modelSelect.addEventListener('change',syncModel); syncModel();
-function clearFile(){fileInput.value='';fileMeta.textContent='';uploadBtn.disabled=true;uploadBtn.style.opacity='.45'}
-fileInput.addEventListener('change',()=>{const f=fileInput.files[0];if(f){urlInput.value='';urlInput.setCustomValidity('')}fileMeta.textContent=f?`${f.name} · ${(f.size/1048576).toFixed(2)} MB`:'';uploadBtn.disabled=!f;uploadBtn.style.opacity=f?'1':'.45'});
-urlInput.addEventListener('input',()=>{if(urlInput.value.trim())clearFile()});
-function startLoading(id){activeFormId=id;loadingCard.hidden=false;resultArea.innerHTML='';secondsElapsed=0;loadingTimer.textContent='0s';loadingSubtitle.textContent=` Preparing ${provider()}...`;inferenceStatus.textContent=`Running AI inference via ${provider()}...`;clearInterval(timerInterval);timerInterval=setInterval(()=>loadingTimer.textContent=`${++secondsElapsed}s`,1000);document.querySelectorAll('#url-form button,#file-form button,#url-form input,#file-form input,#model-select').forEach(e=>e.disabled=true)}
-function stopLoading(){clearInterval(timerInterval);loadingCard.hidden=true;document.querySelectorAll('#url-form input,#file-form input,#model-select').forEach(e=>e.disabled=false);uploadBtn.disabled=!fileInput.files.length;activeFormId=null}
+modelSelect.addEventListener('change',syncModel); syncModel(); setActionState(urlBtn,false); setActionState(textBtn,false); setActionState(uploadBtn,false);
+function setActionState(button, enabled){button.disabled=!enabled;button.style.background=enabled?'var(--ink)':'var(--surface)';button.style.color=enabled?'var(--ground)':'var(--muted)';button.style.cursor=enabled?'pointer':'not-allowed'}
+function clearFile(){fileInput.value='';fileMeta.textContent='';setActionState(uploadBtn,false)}
+function clearText(){textInput.value='';textMeta.textContent='0 words';setActionState(textBtn,false)}
+function updateText(){const words=textInput.value.trim()?textInput.value.trim().split(/\s+/).length:0;textMeta.textContent=`${words} word${words===1?'':'s'}`;setActionState(textBtn,Boolean(words))}
+function updateUrl(){setActionState(urlBtn,Boolean(urlInput.value.trim()))}
+fileInput.addEventListener('change',()=>{const f=fileInput.files[0];if(f){urlInput.value='';updateUrl();clearText()}fileMeta.textContent=f?`${f.name} · ${(f.size/1048576).toFixed(2)} MB`:'';setActionState(uploadBtn,Boolean(f))});
+urlInput.addEventListener('input',()=>{if(urlInput.value.trim()){clearFile();clearText()}updateUrl()});
+textInput.addEventListener('input',()=>{if(textInput.value.trim()){urlInput.value='';clearFile()}updateText()});
+function startLoading(id){activeFormId=id;loadingCard.hidden=false;resultArea.innerHTML='';secondsElapsed=0;loadingTimer.textContent='0s';loadingSubtitle.textContent=` Preparing ${provider()}...`;inferenceStatus.textContent=`Running AI inference via ${provider()}...`;clearInterval(timerInterval);timerInterval=setInterval(()=>loadingTimer.textContent=`${++secondsElapsed}s`,1000);document.querySelectorAll('#url-form input,#file-form input,#text-form textarea,#model-select').forEach(e=>e.disabled=true);[urlBtn,textBtn,uploadBtn].forEach(button=>setActionState(button,false))}
+function stopLoading(){clearInterval(timerInterval);loadingCard.hidden=true;document.querySelectorAll('#url-form input,#file-form input,#text-form textarea,#model-select').forEach(e=>e.disabled=false);setActionState(uploadBtn,Boolean(fileInput.files.length));setActionState(textBtn,Boolean(textInput.value.trim()));setActionState(urlBtn,Boolean(urlInput.value.trim()));activeFormId=null}
 function stopSummarize(){if(activeFormId){const f=document.getElementById(activeFormId);htmx.trigger(f,'htmx:abort')}stopLoading();resultArea.innerHTML='<p style="border-top:1px solid var(--hairline);padding:16px 0">Processing stopped.</p>'}
-document.body.addEventListener('htmx:beforeRequest',e=>{if(['url-form','file-form'].includes(e.target.id))startLoading(e.target.id)});document.body.addEventListener('htmx:afterRequest',e=>{if(['url-form','file-form'].includes(e.target.id))stopLoading()});
+document.body.addEventListener('htmx:beforeRequest',e=>{if(['url-form','file-form','text-form'].includes(e.target.id))startLoading(e.target.id)});document.body.addEventListener('htmx:afterRequest',e=>{if(['url-form','file-form','text-form'].includes(e.target.id))stopLoading()});
 </script>
 {% endblock %}

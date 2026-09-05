@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse, Response
 import config
 from services.cache import get_document_context
 from services.models import validate_model
-from services.summarizer import ask_document, process_url, reset_model, set_model
+from services.summarizer import ask_document, process_text, process_url, reset_model, set_model
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
@@ -57,6 +57,17 @@ def validate_url(url: str) -> str | None:
     if is_ssrf_target(url):
         return "Access to internal/private addresses is not allowed."
     return None
+
+
+@router.post("/api/summarize-text")
+async def summarize_text(request: Request, text: str = Form(...), model: str = Form(...)):
+    selected_model = await validate_model(model)
+    token = set_model(selected_model)
+    try:
+        result = await process_text(text)
+    finally:
+        reset_model(token)
+    return templates.TemplateResponse(request=request, name="result.html", context=result)
 
 
 @router.post("/api/summarize-url")
