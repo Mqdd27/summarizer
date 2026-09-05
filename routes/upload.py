@@ -38,14 +38,19 @@ async def upload_file(request: Request, file: UploadFile = File(...), model: str
     safe_name = sanitize_filename(file.filename)
     file_path = os.path.join(config.UPLOAD_DIR, safe_name)
 
-    if mime in config.ALLOWED_PDF_TYPES:
+    suffix = Path(file.filename).suffix.lower()
+    if mime in config.ALLOWED_PDF_TYPES or suffix == ".pdf":
         input_type = "pdf"
     elif mime in config.ALLOWED_IMAGE_TYPES:
         input_type = "image"
+    elif suffix in config.ALLOWED_DOCUMENT_EXTENSIONS and (
+        mime in config.ALLOWED_DOCUMENT_TYPES or mime.startswith("text/") or mime == "application/octet-stream"
+    ):
+        input_type = "document"
     else:
         return templates.TemplateResponse(
             request=request, name="result.html",
-            context={"error": f"Unsupported file type: {mime}. Allowed: PDF, JPG, PNG, WEBP."}
+            context={"error": "Unsupported file type. Allowed: PDF, DOCX, ODT, and text-based documents such as TXT, Markdown, CSV, JSON, XML, HTML, RTF, YAML, and code files."}
         )
 
     os.makedirs(config.UPLOAD_DIR, exist_ok=True)

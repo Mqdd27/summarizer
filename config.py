@@ -17,6 +17,19 @@ UPLOAD_MAX_SIZE = int(os.getenv("UPLOAD_MAX_SIZE", str(20 * 1024 * 1024)))
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/tmp/summarizer_uploads")
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_PDF_TYPES = {"application/pdf"}
+ALLOWED_DOCUMENT_TYPES = {
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.oasis.opendocument.text",
+    "text/plain", "text/markdown", "text/csv", "text/tab-separated-values",
+    "application/json", "application/xml", "text/xml", "text/html", "application/rtf",
+}
+ALLOWED_DOCUMENT_EXTENSIONS = {
+    ".docx", ".odt", ".txt", ".md", ".markdown", ".rst", ".csv", ".tsv",
+    ".json", ".jsonl", ".xml", ".html", ".htm", ".rtf", ".log", ".yaml",
+    ".yml", ".ini", ".cfg", ".conf", ".toml", ".py", ".js", ".ts", ".tsx",
+    ".jsx", ".css", ".sql", ".sh", ".bash", ".zsh", ".java", ".c", ".cpp",
+    ".h", ".go", ".rs", ".php", ".rb", ".swift", ".kt", ".tex",
+}
 
 DB_PATH = os.getenv("DB_PATH", "database.db")
 

@@ -11,6 +11,7 @@ import config
 from services.website import extract_from_url
 from services.pdf import extract_from_pdf
 from services.image import extract_from_image
+from services.document import extract_document_text
 from services.markdown import render_markdown
 from services.cache import get_cached, set_cached, set_document_context, log_request
 
@@ -408,6 +409,37 @@ async def process_file(file_path: str, input_type: str, original_name: str) -> d
                 "page_count": extracted.get("page_count", 0),
             }
             await log_request("pdf", original_name, model, total_time, original_words, summary_words, "success", "", result.get("chunk_count", 1))
+            return output
+
+        elif input_type == "document":
+            extracted = extract_document_text(file_path)
+            text = extracted["text"]
+            if not text.strip():
+                return {"error": "Could not extract readable text from this document."}
+            original_words = count_words(text)
+            result = await hierarchical_summarize(text)
+            summary_html = render_markdown(result["content"])
+            summary_words = count_words(result["content"])
+            total_time = time.time() - start
+            context_id = await set_document_context("text", text, model)
+            output = {
+                "context_id": context_id,
+                "source_kind": "text",
+                "source_url": f"/api/document-source/{context_id}",
+                "summary_html": summary_html,
+                "summary_md": result["content"],
+                "source_type": extracted["extension"].lstrip(".").upper() or "Document",
+                "source_title": extracted["title"] or original_name,
+                "source_name": original_name,
+                "processing_time": f"{total_time:.1f}s",
+                "original_words": original_words,
+                "summary_words": summary_words,
+                "compression_ratio": f"{(1 - summary_words / max(original_words, 1)) * 100:.0f}%",
+                "reading_time": f"{max(1, summary_words // 200)} min",
+                "model_used": model,
+                "chunk_count": result.get("chunk_count", 1),
+            }
+            await log_request("document", original_name, model, total_time, original_words, summary_words, "success", "", result.get("chunk_count", 1))
             return output
 
         elif input_type == "image":
